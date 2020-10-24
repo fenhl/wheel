@@ -11,7 +11,6 @@
 )]
 
 use {
-    itertools::Itertools as _,
     proc_macro::TokenStream,
     quote::{
         quote,
@@ -75,36 +74,39 @@ pub fn lib(_attr: TokenStream, item: TokenStream) -> TokenStream {
 /// Annotate your `main` function with this.
 ///
 /// * It can be a `fn` or an `async fn`. In the latter case, `tokio`'s threaded runtime will be used.
-/// * It must take a single parameter that implements `paw::ParseArgs` with an `Error` that implements `Display`. Command-line arguments will be parsed into it.
+/// * It may take a single parameter that implements `paw::ParseArgs` with an `Error` that implements `Display`. If it does, command-line arguments will be parsed into it.
 /// * It must return a `Result<(), E>`, for some `E` that implements `Display` (not necessarily the same as the `paw` error).
 /// * Any error returned from argument parsing or the function body will be displayed and the process will exit with status code `1`.
 #[proc_macro_attribute]
 pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let main_fn = parse_macro_input!(item as ItemFn);
     let asyncness = &main_fn.sig.asyncness;
-    let arg = match main_fn.sig.inputs.iter().exactly_one() {
-        Ok(FnArg::Typed(arg)) => arg,
-        Ok(FnArg::Receiver(_)) => return quote_spanned! {main_fn.sig.inputs.span()=>
+    let awaitness = asyncness.as_ref().map(|_| quote!(.await));
+    let mut args_iter = main_fn.sig.inputs.iter();
+    let arg = match args_iter.next() {
+        Some(FnArg::Typed(arg)) => Some(arg),
+        Some(FnArg::Receiver(_)) => return quote_spanned! {main_fn.sig.inputs.span()=>
             compile_error!("main should not take self")
         }.into(),
-        Err(_) => return quote_spanned! {main_fn.sig.inputs.span()=>
-            compile_error!("main should take exactly one argument")
-        }.into()
+        None => None,
     };
-    let arg_ty = &arg.ty;
+    if args_iter.next().is_some() { return quote_spanned! {main_fn.sig.inputs.span()=>
+        compile_error!("main should take one or zero arguments")
+    }.into() }
     let ret = main_fn.sig.output;
     let body = main_fn.block;
-    TokenStream::from(if let Some(async_tok) = asyncness {
+    TokenStream::from(if let Some(arg) = arg {
+        let arg_ty = &arg.ty;
         quote! {
             use ::wheel::tokio;
 
-            #async_tok fn main_inner(#arg) #ret #body
+            #asyncness fn main_inner(#arg) #ret #body
 
             #[tokio::main]
-            #async_tok fn main() {
+            #asyncness fn main() {
                 //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
                 match <#arg_ty as ::wheel::paw::ParseArgs>::parse_args() {
-                    Ok(args) => match main_inner(args).await {
+                    Ok(args) => match main_inner(args)#awaitness {
                         Ok(()) => {}
                         Err(e) => {
                             eprintln!("{}: {}", env!("CARGO_PKG_NAME"), e);
@@ -120,20 +122,17 @@ pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     } else {
         quote! {
-            fn main_inner(#arg) #ret #body
+            use ::wheel::tokio;
 
-            fn main() {
+            #asyncness fn main_inner() #ret #body
+
+            #[tokio::main]
+            #asyncness fn main() {
                 //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
-                match <#arg_ty as ::wheel::paw::ParseArgs>::parse_args() {
-                    Ok(args) => match main_inner(args) {
-                        Ok(()) => {}
-                        Err(e) => {
-                            eprintln!("{}: {}", env!("CARGO_PKG_NAME"), e);
-                            std::process::exit(1);
-                        }
-                    }
+                match main_inner()#awaitness {
+                    Ok(()) => {}
                     Err(e) => {
-                        eprintln!("{}: error parsing command line arguments: {}", env!("CARGO_PKG_NAME"), e);
+                        eprintln!("{}: {}", env!("CARGO_PKG_NAME"), e);
                         std::process::exit(1);
                     }
                 }

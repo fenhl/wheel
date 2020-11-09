@@ -19,6 +19,7 @@ use {
     syn::{
         FnArg,
         ItemFn,
+        ReturnType,
         parse_macro_input,
         spanned::Spanned as _
     }
@@ -75,7 +76,7 @@ pub fn lib(_attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// * It can be a `fn` or an `async fn`. In the latter case, `tokio`'s threaded runtime will be used.
 /// * It may take a single parameter that implements `paw::ParseArgs` with an `Error` that implements `Display`. If it does, command-line arguments will be parsed into it.
-/// * It must return a `Result<(), E>`, for some `E` that implements `Display` (not necessarily the same as the `paw` error).
+/// * It must return `()` or a `Result<(), E>`, for some `E` that implements `Display` (not necessarily the same as the `paw` error).
 /// * Any error returned from argument parsing or the function body will be displayed and the process will exit with status code `1`.
 #[proc_macro_attribute]
 pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -98,47 +99,41 @@ pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
     if args_iter.next().is_some() { return quote_spanned! {main_fn.sig.inputs.span()=>
         compile_error!("main should take one or zero arguments")
     }.into() }
-    let ret = main_fn.sig.output;
-    let body = main_fn.block;
-    TokenStream::from(if let Some(arg) = arg {
+    let (arg, args_match, args_pat, args, err_arm) = if let Some(arg) = arg {
         let arg_ty = &arg.ty;
+        (quote!(#arg), quote!(<#arg_ty as ::wheel::paw::ParseArgs>::parse_args()), quote!(Ok(args)), quote!(args), quote!(Err(e) => {
+            eprintln!("{}: error parsing command line arguments: {}", env!("CARGO_PKG_NAME"), e);
+            std::process::exit(1);
+        }))
+    } else {
+        (quote!(), quote!(()), quote!(()), quote!(), quote!())
+    };
+    let ret = main_fn.sig.output;
+    let main_ret_match_body = if let ReturnType::Default = ret {
         quote! {
-            use ::wheel::tokio;
-
-            #asyncness fn main_inner(#arg) #ret #body
-
-            #main_prefix fn main() {
-                //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
-                match <#arg_ty as ::wheel::paw::ParseArgs>::parse_args() {
-                    Ok(args) => match main_inner(args)#awaitness {
-                        Ok(()) => {}
-                        Err(e) => {
-                            eprintln!("{}: {}", env!("CARGO_PKG_NAME"), e);
-                            std::process::exit(1);
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("{}: error parsing command line arguments: {}", env!("CARGO_PKG_NAME"), e);
-                        std::process::exit(1);
-                    }
-                }
-            }
+            () => {}
         }
     } else {
+        // assume Result<(), impl Display>
         quote! {
-            use ::wheel::tokio;
+            Ok(()) => {}
+            Err(e) => {
+                eprintln!("{}: {}", env!("CARGO_PKG_NAME"), e);
+                std::process::exit(1);
+            }
+        }
+    };
+    let body = main_fn.block;
+    TokenStream::from(quote! {
+        use ::wheel::tokio;
 
-            #asyncness fn main_inner() #ret #body
+        #asyncness fn main_inner(#arg) #ret #body
 
-            #main_prefix fn main() {
-                //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
-                match main_inner()#awaitness {
-                    Ok(()) => {}
-                    Err(e) => {
-                        eprintln!("{}: {}", env!("CARGO_PKG_NAME"), e);
-                        std::process::exit(1);
-                    }
-                }
+        #main_prefix fn main() {
+            //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
+            match #args_match {
+                #args_pat => match main_inner(#args)#awaitness { #main_ret_match_body }
+                #err_arm
             }
         }
     })

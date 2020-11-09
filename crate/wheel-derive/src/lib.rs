@@ -81,6 +81,11 @@ pub fn lib(_attr: TokenStream, item: TokenStream) -> TokenStream {
 pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let main_fn = parse_macro_input!(item as ItemFn);
     let asyncness = &main_fn.sig.asyncness;
+    let main_prefix = if let Some(async_keyword) = asyncness {
+        quote!(#[tokio::main] #async_keyword)
+    } else {
+        quote!()
+    };
     let awaitness = asyncness.as_ref().map(|_| quote!(.await));
     let mut args_iter = main_fn.sig.inputs.iter();
     let arg = match args_iter.next() {
@@ -102,8 +107,7 @@ pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
             #asyncness fn main_inner(#arg) #ret #body
 
-            #[tokio::main]
-            #asyncness fn main() {
+            #main_prefix fn main() {
                 //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
                 match <#arg_ty as ::wheel::paw::ParseArgs>::parse_args() {
                     Ok(args) => match main_inner(args)#awaitness {
@@ -126,8 +130,7 @@ pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
             #asyncness fn main_inner() #ret #body
 
-            #[tokio::main]
-            #asyncness fn main() {
+            #main_prefix fn main() {
                 //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
                 match main_inner()#awaitness {
                     Ok(()) => {}

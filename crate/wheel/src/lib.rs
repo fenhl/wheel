@@ -16,7 +16,6 @@ pub use wheel_derive::{
     main
 };
 
-#[doc(hidden)] pub use {
-    paw,
-    tokio
-}; // used in proc macro
+// used in proc macro:
+#[doc(hidden)] pub use paw;
+#[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;

@@ -74,7 +74,7 @@ pub fn lib(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
 /// Annotate your `main` function with this.
 ///
-/// * It can be a `fn` or an `async fn`. In the latter case, `tokio`'s threaded runtime will be used.
+/// * It can be a `fn` or an `async fn`. In the latter case, `tokio`'s threaded runtime will be used. (This requires the `tokio` feature, which is on by default.)
 /// * It may take a single parameter that implements `paw::ParseArgs` with an `Error` that implements `Display`. If it does, command-line arguments will be parsed into it.
 /// * It must return `()` or a `Result<(), E>`, for some `E` that implements `Display` (not necessarily the same as the `paw` error).
 /// * Any error returned from argument parsing or the function body will be displayed and the process will exit with status code `1`.
@@ -82,11 +82,8 @@ pub fn lib(_attr: TokenStream, item: TokenStream) -> TokenStream {
 pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let main_fn = parse_macro_input!(item as ItemFn);
     let asyncness = &main_fn.sig.asyncness;
-    let main_prefix = if let Some(async_keyword) = asyncness {
-        quote!(#[tokio::main] #async_keyword)
-    } else {
-        quote!()
-    };
+    let use_tokio = asyncness.as_ref().map(|_| quote!(use ::wheel::tokio;));
+    let main_prefix = asyncness.as_ref().map(|async_keyword| quote!(#[tokio::main] #async_keyword));
     let awaitness = asyncness.as_ref().map(|_| quote!(.await));
     let mut args_iter = main_fn.sig.inputs.iter();
     let arg = match args_iter.next() {
@@ -125,7 +122,7 @@ pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
     };
     let body = main_fn.block;
     TokenStream::from(quote! {
-        use ::wheel::tokio;
+        #use_tokio
 
         #asyncness fn main_inner(#arg) #ret #body
 

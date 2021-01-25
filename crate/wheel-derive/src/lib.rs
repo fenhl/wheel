@@ -4,25 +4,26 @@
     missing_docs,
     rust_2018_idioms, // this lint is actually about idioms that are *outdated* in Rust 2018
     unused,
+    unused_crate_dependencies,
     unused_import_braces,
     unused_lifetimes,
     unused_qualifications,
-    warnings
+    warnings,
 )]
 
 use {
     proc_macro::TokenStream,
     quote::{
         quote,
-        quote_spanned
+        quote_spanned,
     },
     syn::{
         FnArg,
         ItemFn,
         ReturnType,
         parse_macro_input,
-        spanned::Spanned as _
-    }
+        spanned::Spanned as _,
+    },
 };
 
 /// Attribute macro for binary crates.
@@ -39,10 +40,11 @@ pub fn bin(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #[deny(
             rust_2018_idioms, // this lint is actually about idioms that are *outdated* in Rust 2018
             unused,
+            unused_crate_dependencies,
             unused_import_braces,
             unused_lifetimes,
             unused_qualifications,
-            warnings
+            warnings,
         )]
         #item
     })
@@ -63,10 +65,11 @@ pub fn lib(_attr: TokenStream, item: TokenStream) -> TokenStream {
             missing_docs,
             rust_2018_idioms, // this lint is actually about idioms that are *outdated* in Rust 2018
             unused,
+            unused_crate_dependencies,
             unused_import_braces,
             unused_lifetimes,
             unused_qualifications,
-            warnings
+            warnings,
         )]
         #item
     })

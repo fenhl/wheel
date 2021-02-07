@@ -20,7 +20,6 @@ use {
     syn::{
         FnArg,
         ItemFn,
-        ReturnType,
         parse_macro_input,
         spanned::Spanned as _,
     },
@@ -109,20 +108,6 @@ pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
         (quote!(), quote!(()), quote!(()), quote!(), quote!())
     };
     let ret = main_fn.sig.output;
-    let main_ret_match_body = if let ReturnType::Default = ret {
-        quote! {
-            () => {}
-        }
-    } else {
-        // assume Result<(), impl Display>
-        quote! {
-            Ok(()) => {}
-            Err(e) => {
-                eprintln!("{}: {}", env!("CARGO_PKG_NAME"), e);
-                std::process::exit(1);
-            }
-        }
-    };
     let body = main_fn.block;
     TokenStream::from(quote! {
         #use_tokio
@@ -132,7 +117,7 @@ pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #main_prefix fn main() {
             //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
             match #args_match {
-                #args_pat => match main_inner(#args)#awaitness { #main_ret_match_body }
+                #args_pat => ::wheel::MainOutput::exit(main_inner(#args)#awaitness, env!("CARGO_PKG_NAME")),
                 #err_arm
             }
         }

@@ -16,6 +16,7 @@ use std::{
     fmt,
 };
 pub use wheel_derive::{
+    FromArc,
     bin,
     lib,
     main,

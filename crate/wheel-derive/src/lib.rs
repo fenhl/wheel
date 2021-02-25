@@ -12,18 +12,71 @@
 )]
 
 use {
+    itertools::Itertools as _,
     proc_macro::TokenStream,
     quote::{
         quote,
         quote_spanned,
     },
     syn::{
+        Data,
+        DataEnum,
+        DeriveInput,
+        Fields,
+        FieldsUnnamed,
         FnArg,
+        GenericArgument,
         ItemFn,
+        PathArguments,
+        Type,
         parse_macro_input,
         spanned::Spanned as _,
     },
 };
+
+/// Implements `From<T>` for enum variants with fields of type `Arc<T>`.
+///
+/// The conversion is only implemented for variants tagged with `#[from_arc]`.
+#[proc_macro_derive(FromArc, attributes(from_arc))]
+pub fn from_arc(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let ty = input.ident;
+    let derives = match input.data {
+        Data::Enum(DataEnum { variants, .. }) => variants.iter()
+            .filter(|variant| variant.attrs.iter().any(|attr| attr.path.get_ident().map_or(false, |ident| ident == "from_arc")))
+            .map(|variant| {
+                let variant_name = &variant.ident;
+                let arc_ty = match variant.fields {
+                    Fields::Unnamed(FieldsUnnamed { ref unnamed, .. }) => unnamed.iter()
+                        .exactly_one().ok().expect("enum variant tagged with #[from_arc] must have exactly one field")
+                        .ty.clone(),
+                    _ => panic!("enum variant tagged with #[from_arc] must have an unnamed field"),
+                };
+                let field_ty = match arc_ty {
+                    Type::Path(path) => match path.path.segments.iter().last().expect("empty type path").arguments {
+                        PathArguments::AngleBracketed(ref args) => match args.args.iter().exactly_one().ok().expect("field type must have exactly one type argument") {
+                            GenericArgument::Type(ref type_param) => type_param.clone(),
+                            _ => panic!("field type must have a type parameter"),
+                        },
+                        _ => panic!("field type must be of the form Arc<T>"),
+                    },
+                    _ => panic!("field type must be of the form Arc<T>"),
+                };
+                quote! {
+                    impl From<#field_ty> for #ty {
+                        fn from(x: #field_ty) -> #ty {
+                            #ty::#variant_name(::std::sync::Arc::new(x))
+                        }
+                    }
+                }
+            })
+            .collect_vec(),
+        _ => return quote!(compile_error!("derive(FromArc) is only implemented for enums")).into(),
+    };
+    TokenStream::from(quote! {
+        #(#derives)*
+    })
+}
 
 /// Attribute macro for binary crates.
 ///

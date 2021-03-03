@@ -24,6 +24,7 @@ pub use wheel_derive::{
 
 // used in proc macro:
 #[doc(hidden)] pub use paw;
+#[cfg(feature = "clap-beta")] #[doc(hidden)] pub use dep_clap_beta as clap; // used in proc macro
 #[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;
 #[cfg(feature = "tokio02")] #[doc(hidden)] pub use tokio02 as tokio;
 #[cfg(feature = "tokio03")] #[doc(hidden)] pub use tokio03 as tokio;

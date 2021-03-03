@@ -19,6 +19,7 @@ use {
         quote_spanned,
     },
     syn::{
+        AttributeArgs,
         Data,
         DataEnum,
         DeriveInput,
@@ -27,6 +28,8 @@ use {
         FnArg,
         GenericArgument,
         ItemFn,
+        Meta,
+        NestedMeta,
         PathArguments,
         Type,
         parse_macro_input,
@@ -127,14 +130,32 @@ pub fn lib(_attr: TokenStream, item: TokenStream) -> TokenStream {
     })
 }
 
+enum ParseMode {
+    Clap,
+    Paw,
+}
+
 /// Annotate your `main` function with this.
 ///
 /// * It can be a `fn` or an `async fn`. In the latter case, `tokio`'s threaded runtime will be used. (This requires the `tokio` feature, which is on by default.)
 /// * It may take a single parameter that implements `paw::ParseArgs` with an `Error` that implements `Display`. If it does, command-line arguments will be parsed into it.
 /// * It must return `()` or a `Result<(), E>`, for some `E` that implements `Display` (not necessarily the same as the `paw` error).
 /// * Any error returned from argument parsing or the function body will be displayed and the process will exit with status code `1`.
+///
+/// The attribute can be specified as `#[wheel::main(clap)]` to parse arguments using the [`clap` 3 beta](https://docs.rs/clap/3.0.0-beta.2) instead of `paw`. This requires the unstable `wheel` crate feature `clap-beta`.
 #[proc_macro_attribute]
-pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let attr_args = parse_macro_input!(attr as AttributeArgs);
+    let parse_mode = match &attr_args[..] {
+        [] => ParseMode::Paw,
+        [NestedMeta::Meta(Meta::Path(path))] if path.get_ident().map_or(false, |ident| ident == "clap") => ParseMode::Clap,
+        [arg] => return quote_spanned! {arg.span()=>
+            compile_error!("unexpected args parse mode")
+        }.into(),
+        [_, arg, ..] => return quote_spanned! {arg.span()=>
+            compile_error!("unexpected wheel::main attribute argument")
+        }.into(),
+    };
     let main_fn = parse_macro_input!(item as ItemFn);
     let asyncness = &main_fn.sig.asyncness;
     let use_tokio = asyncness.as_ref().map(|_| quote!(use ::wheel::tokio;));
@@ -153,10 +174,13 @@ pub fn main(_attr: TokenStream, item: TokenStream) -> TokenStream {
     }.into() }
     let (arg, args_match, args_pat, args, err_arm) = if let Some(arg) = arg {
         let arg_ty = &arg.ty;
-        (quote!(#arg), quote!(<#arg_ty as ::wheel::paw::ParseArgs>::parse_args()), quote!(Ok(args)), quote!(args), quote!(Err(e) => {
-            eprintln!("{}: error parsing command line arguments: {}", env!("CARGO_PKG_NAME"), e);
-            std::process::exit(1);
-        }))
+        match parse_mode {
+            ParseMode::Clap => (quote!(#arg), quote!(<#arg_ty as ::wheel::clap::Clap>::parse()), quote!(args), quote!(args), quote!()),
+            ParseMode::Paw => (quote!(#arg), quote!(<#arg_ty as ::wheel::paw::ParseArgs>::parse_args()), quote!(Ok(args)), quote!(args), quote!(Err(e) => {
+                eprintln!("{}: error parsing command line arguments: {}", env!("CARGO_PKG_NAME"), e);
+                std::process::exit(1);
+            })),
+        }
     } else {
         (quote!(), quote!(()), quote!(()), quote!(), quote!())
     };

@@ -87,7 +87,7 @@ pub fn from_arc(input: TokenStream) -> TokenStream {
 ///
 /// Currently only works on nightly Rust due to <https://github.com/rust-lang/rust/issues/54726>.
 #[proc_macro_attribute]
-pub fn bin(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn bin(_: TokenStream, item: TokenStream) -> TokenStream {
     let item = proc_macro2::TokenStream::from(item);
     //TODO allow #[bin(gui)] to add #[windows_subsystem = "windows"]
     //TODO add #[forbid(unsafe_code)], allow #[bin(unsafe)] to bypass
@@ -111,7 +111,7 @@ pub fn bin(_attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// Currently only works on nightly Rust due to <https://github.com/rust-lang/rust/issues/54726>.
 #[proc_macro_attribute]
-pub fn lib(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn lib(_: TokenStream, item: TokenStream) -> TokenStream {
     let item = proc_macro2::TokenStream::from(item);
     //TODO allow #[lib(allow_missing_docs)] to bypass #[deny(missing_docs)]
     //TODO add #[forbid(unsafe_code)], allow #[lib(unsafe)] to bypass
@@ -144,18 +144,27 @@ enum ParseMode {
 ///
 /// The attribute can be specified as `#[wheel::main(clap)]` to parse arguments using the [`clap` 3 beta](https://docs.rs/clap/3.0.0-beta.2) instead of `paw`. This requires the unstable `wheel` crate feature `clap-beta`.
 #[proc_macro_attribute]
-pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let attr_args = parse_macro_input!(attr as AttributeArgs);
-    let parse_mode = match &attr_args[..] {
-        [] => ParseMode::Paw,
-        [NestedMeta::Meta(Meta::Path(path))] if path.get_ident().map_or(false, |ident| ident == "clap") => ParseMode::Clap,
-        [arg] => return quote_spanned! {arg.span()=>
-            compile_error!("unexpected args parse mode")
-        }.into(),
-        [_, arg, ..] => return quote_spanned! {arg.span()=>
+pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as AttributeArgs);
+    let mut exit_code = quote!(::core::option::Option::None);
+    let mut parse_mode = ParseMode::Paw;
+    for arg in args {
+        if let NestedMeta::Meta(Meta::Path(ref path)) = arg {
+            if let Some(ident) = path.get_ident() {
+                match &*ident.to_string() {
+                    "clap" => parse_mode = ParseMode::Clap,
+                    "custom_exit" => exit_code = quote!(::wheel::CustomExit::exit_code(&ret_val)),
+                    _ => return quote_spanned! {arg.span()=>
+                        compile_error!("unexpected wheel::main attribute argument")
+                    }.into(),
+                }
+                continue
+            }
+        }
+        return quote_spanned! {arg.span()=>
             compile_error!("unexpected wheel::main attribute argument")
-        }.into(),
-    };
+        }.into()
+    }
     let main_fn = parse_macro_input!(item as ItemFn);
     let asyncness = &main_fn.sig.asyncness;
     let use_tokio = asyncness.as_ref().map(|_| quote!(use ::wheel::tokio;));
@@ -176,9 +185,9 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
         let arg_ty = &arg.ty;
         match parse_mode {
             ParseMode::Clap => (quote!(#arg), quote!(<#arg_ty as ::wheel::clap::Clap>::parse()), quote!(args), quote!(args), quote!()),
-            ParseMode::Paw => (quote!(#arg), quote!(<#arg_ty as ::wheel::paw::ParseArgs>::parse_args()), quote!(Ok(args)), quote!(args), quote!(Err(e) => {
+            ParseMode::Paw => (quote!(#arg), quote!(<#arg_ty as ::wheel::paw::ParseArgs>::parse_args()), quote!(::core::result::Result::Ok(args)), quote!(args), quote!(::core::result::Result::Err(e) => {
                 eprintln!("{}: error parsing command line arguments: {}", env!("CARGO_PKG_NAME"), e);
-                std::process::exit(1);
+                ::std::process::exit(1);
             })),
         }
     } else {
@@ -194,7 +203,11 @@ pub fn main(attr: TokenStream, item: TokenStream) -> TokenStream {
         #main_prefix fn main() {
             //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
             match #args_match {
-                #args_pat => ::wheel::MainOutput::exit(main_inner(#args)#awaitness, env!("CARGO_PKG_NAME")),
+                #args_pat => {
+                    let ret_val = main_inner(#args)#awaitness;
+                    let exit_code = #exit_code;
+                    ::wheel::MainOutput::exit(ret_val, exit_code, env!("CARGO_PKG_NAME"))
+                }
                 #err_arm
             }
         }

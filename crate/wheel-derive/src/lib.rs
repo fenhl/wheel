@@ -146,14 +146,14 @@ enum ParseMode {
 #[proc_macro_attribute]
 pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as AttributeArgs);
-    let mut exit_code = quote!(::core::option::Option::None);
+    let mut exit_trait = quote!(::wheel::MainOutput);
     let mut parse_mode = ParseMode::Paw;
     for arg in args {
         if let NestedMeta::Meta(Meta::Path(ref path)) = arg {
             if let Some(ident) = path.get_ident() {
                 match &*ident.to_string() {
                     "clap" => parse_mode = ParseMode::Clap,
-                    "custom_exit" => exit_code = quote!(::wheel::CustomExit::exit_code(&ret_val)),
+                    "custom_exit" => exit_trait = quote!(::wheel::CustomExit),
                     _ => return quote_spanned! {arg.span()=>
                         compile_error!("unexpected wheel::main attribute argument")
                     }.into(),
@@ -205,8 +205,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             match #args_match {
                 #args_pat => {
                     let ret_val = main_inner(#args)#awaitness;
-                    let exit_code = #exit_code;
-                    ::wheel::MainOutput::exit(ret_val, exit_code, env!("CARGO_PKG_NAME"))
+                    #exit_trait::exit(ret_val, env!("CARGO_PKG_NAME"))
                 }
                 #err_arm
             }

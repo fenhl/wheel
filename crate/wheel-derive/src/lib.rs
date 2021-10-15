@@ -142,7 +142,7 @@ enum ParseMode {
 /// * It must return `()` or a `Result<(), E>`, for some `E` that implements `Display` (not necessarily the same as the `paw` error).
 /// * Any error returned from argument parsing or the function body will be displayed and the process will exit with status code `1`.
 ///
-/// The attribute can be specified as `#[wheel::main(clap)]` to parse arguments using the [`clap` 3 beta](https://docs.rs/clap/3.0.0-beta.2) instead of `paw`. This requires the unstable `wheel` crate feature `clap-beta`.
+/// The attribute can be specified as `#[wheel::main(clap)]` to parse arguments using the [`clap` 3 beta](https://docs.rs/clap/3.0.0-beta.4) instead of `paw`. This requires the unstable `wheel` crate feature `clap-beta`.
 #[proc_macro_attribute]
 pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as AttributeArgs);

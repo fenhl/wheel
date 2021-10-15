@@ -14,8 +14,7 @@ paw = "1" # used in proc macro
 
 [dependencies.dep_clap_beta] # used in proc macro
 package = "clap"
-git = "https://github.com/clap-rs/clap"
-rev = "e242cc1c7b320871e451d8b5366ebc22f642d004"
+version = "3.0.0-beta.4"
 optional = true
 
 [dependencies.tokio]

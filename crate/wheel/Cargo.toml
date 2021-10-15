@@ -1,6 +1,6 @@
 [package]
 name = "wheel"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Fenhl <fenhl@fenhl.net>"]
 edition = "2018"
 description = "Rust boilerplate. Reinventing the wheel so you don't have to."
@@ -16,6 +16,10 @@ paw = "1" # used in proc macro
 package = "clap"
 version = "3.0.0-beta.4"
 optional = true
+
+[dependencies.structopt] # used in proc macro
+version = "0.3"
+features = ["paw"]
 
 [dependencies.tokio]
 version = "1"
@@ -36,3 +40,4 @@ optional = true
 
 [dependencies.wheel-derive]
 path = "../wheel-derive"
+version = "=0.4.1"

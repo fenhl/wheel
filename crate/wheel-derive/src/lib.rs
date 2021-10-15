@@ -139,6 +139,7 @@ enum ParseMode {
 ///
 /// * It can be a `fn` or an `async fn`. In the latter case, `tokio`'s threaded runtime will be used. (This requires the `tokio` feature, which is on by default.)
 /// * It may take a single parameter that implements `paw::ParseArgs` with an `Error` that implements `Display`. If it does, command-line arguments will be parsed into it.
+///     * If the parameter is omitted, a simple argument parser will be used to add support for `--help` and `--version`, and to reject any other arguments.
 /// * It must return `()` or a `Result<(), E>`, for some `E` that implements `Display` (not necessarily the same as the `paw` error).
 /// * Any error returned from argument parsing or the function body will be displayed and the process will exit with status code `1`.
 ///
@@ -170,28 +171,47 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let use_tokio = asyncness.as_ref().map(|_| quote!(use ::wheel::tokio;));
     let main_prefix = asyncness.as_ref().map(|async_keyword| quote!(#[tokio::main] #async_keyword));
     let awaitness = asyncness.as_ref().map(|_| quote!(.await));
-    let mut args_iter = main_fn.sig.inputs.iter();
-    let arg = match args_iter.next() {
-        Some(FnArg::Typed(arg)) => Some(arg),
-        Some(FnArg::Receiver(_)) => return quote_spanned! {main_fn.sig.inputs.span()=>
-            compile_error!("main should not take self")
-        }.into(),
-        None => None,
-    };
-    if args_iter.next().is_some() { return quote_spanned! {main_fn.sig.inputs.span()=>
-        compile_error!("main should take one or zero arguments")
-    }.into() }
-    let (arg, args_match, args_pat, args, err_arm) = if let Some(arg) = arg {
-        let arg_ty = &arg.ty;
-        match parse_mode {
-            ParseMode::Clap => (quote!(#arg), quote!(<#arg_ty as ::wheel::clap::Clap>::parse()), quote!(args), quote!(args), quote!()),
-            ParseMode::Paw => (quote!(#arg), quote!(<#arg_ty as ::wheel::paw::ParseArgs>::parse_args()), quote!(::core::result::Result::Ok(args)), quote!(args), quote!(::core::result::Result::Err(e) => {
-                eprintln!("{}: error parsing command line arguments: {}", env!("CARGO_PKG_NAME"), e);
-                ::std::process::exit(1);
-            })),
+    let (items, arg, args_match, args_pat, args, err_arm) = match main_fn.sig.inputs.iter().at_most_one() {
+        Ok(Some(FnArg::Typed(arg))) => {
+            let arg_ty = &arg.ty;
+            match parse_mode {
+                ParseMode::Clap => (quote!(), quote!(#arg), quote!(<#arg_ty as ::wheel::clap::Clap>::parse()), quote!(args), quote!(args), quote!()),
+                ParseMode::Paw => (quote!(), quote!(#arg), quote!(<#arg_ty as ::wheel::paw::ParseArgs>::parse_args()), quote!(::core::result::Result::Ok(args)), quote!(args), quote!(::core::result::Result::Err(e) => {
+                    eprintln!("{}: error parsing command line arguments: {}", env!("CARGO_PKG_NAME"), e);
+                    ::std::process::exit(1);
+                })),
+            }
         }
-    } else {
-        (quote!(), quote!(()), quote!(()), quote!(), quote!())
+        Ok(Some(FnArg::Receiver(_))) => return quote_spanned! {main_fn.sig.inputs.span()=>
+            compile_error!("main should not take self");
+        }.into(),
+        Ok(None) => (quote! {
+            // manually implement StructOpt since the derive macro assumes the structopt crate is in scope
+
+            struct __WheelArgs;
+
+            impl ::wheel::structopt::StructOpt for __WheelArgs {
+                fn clap<'a, 'b>() -> ::wheel::structopt::clap::App<'a, 'b> {
+                    ::wheel::structopt::clap::App::new(env!("CARGO_PKG_NAME")).version(env!("CARGO_PKG_VERSION"))
+                }
+
+                fn from_clap(_: &::wheel::structopt::clap::ArgMatches) -> Self { Self }
+            }
+
+            impl ::wheel::paw::ParseArgs for __WheelArgs {
+                type Error = ::std::io::Error;
+
+                fn parse_args() -> ::std::io::Result<Self> {
+                    Ok(<Self as ::wheel::structopt::StructOpt>::from_args())
+                }
+            }
+        }, quote!(), quote!(<__WheelArgs as ::wheel::paw::ParseArgs>::parse_args()), quote!(::core::result::Result::Ok(__WheelArgs)), quote!(), quote!(::core::result::Result::Err(e) => {
+            eprintln!("{}: error parsing command line arguments: {}", env!("CARGO_PKG_NAME"), e);
+            ::std::process::exit(1);
+        })),
+        Err(_) => return quote_spanned! {main_fn.sig.inputs.span()=>
+            compile_error!("main should take one or zero arguments");
+        }.into(),
     };
     let ret = main_fn.sig.output;
     let body = main_fn.block;
@@ -199,6 +219,8 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
         #use_tokio
 
         #asyncness fn main_inner(#arg) #ret #body
+
+        #items
 
         #main_prefix fn main() {
             //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)

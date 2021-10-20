@@ -197,18 +197,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
 
                 fn from_clap(_: &::wheel::structopt::clap::ArgMatches) -> Self { Self }
             }
-
-            impl ::wheel::paw::ParseArgs for __WheelArgs {
-                type Error = ::core::convert::Infallible;
-
-                fn parse_args() -> ::core::result::Result<Self, ::core::convert::Infallible> {
-                    Ok(<Self as ::wheel::structopt::StructOpt>::from_args())
-                }
-            }
-        }, quote!(), quote!(<__WheelArgs as ::wheel::paw::ParseArgs>::parse_args()), quote!(::core::result::Result::Ok(__WheelArgs)), quote!(), quote!(::core::result::Result::Err(e) => {
-            eprintln!("{}: error parsing command line arguments: {}", env!("CARGO_PKG_NAME"), e);
-            ::std::process::exit(1);
-        })),
+        }, quote!(), quote!(<__WheelArgs as ::wheel::structopt::StructOpt>::from_args()), quote!(__WheelArgs), quote!(), quote!()),
         Err(_) => return quote_spanned! {main_fn.sig.inputs.span()=>
             compile_error!("main should take one or zero arguments");
         }.into(),

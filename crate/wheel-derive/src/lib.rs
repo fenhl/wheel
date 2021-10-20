@@ -199,9 +199,9 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             impl ::wheel::paw::ParseArgs for __WheelArgs {
-                type Error = ::std::io::Error;
+                type Error = ::core::convert::Infallible;
 
-                fn parse_args() -> ::std::io::Result<Self> {
+                fn parse_args() -> ::core::result::Result<Self, ::core::convert::Infallible> {
                     Ok(<Self as ::wheel::structopt::StructOpt>::from_args())
                 }
             }

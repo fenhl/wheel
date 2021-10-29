@@ -14,6 +14,8 @@
 use std::{
     convert::Infallible as Never,
     fmt,
+    io,
+    path::PathBuf,
 };
 pub use wheel_derive::{
     FromArc,
@@ -27,10 +29,54 @@ pub use wheel_derive::{
     paw,
     structopt,
 };
-#[cfg(feature = "clap-beta")] #[doc(hidden)] pub use dep_clap_beta as clap; // used in proc macro
+#[cfg(feature = "clap-beta")] #[doc(hidden)] pub use dep_clap_beta as clap;
 #[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;
 #[cfg(feature = "tokio02")] #[doc(hidden)] pub use tokio02 as tokio;
 #[cfg(feature = "tokio03")] #[doc(hidden)] pub use tokio03 as tokio;
+
+pub mod traits;
+
+/// An error that can be returned from the [traits](crate::traits) in this crate.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub enum Error {
+    /// A subprocess exited with a non-success status.
+    CommandExit {
+        /// The name of the subprocess, as indicated by the `check` call.
+        name: &'static str,
+        output: std::process::Output,
+    },
+    Io {
+        inner: io::Error,
+        /// The path where this error occurred, if known.
+        at: Option<PathBuf>,
+    },
+}
+
+impl traits::FromIoError for Error {
+    fn from_io_at(inner: io::Error, path: impl AsRef<std::path::Path>) -> Self {
+        Self::Io { inner, at: Some(path.as_ref().to_owned()) }
+    }
+
+    fn from_io_at_unknown(inner: io::Error) -> Self {
+        Self::Io { inner, at: None }
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::CommandExit { name, output } => write!(f, "command `{}` exited with {}", name, output.status),
+            Self::Io { inner, at: Some(path) } => write!(f, "I/O error at {}: {}", path.display(), inner),
+            Self::Io { inner, at: None } => write!(f, "I/O error: {}", inner),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
+/// A shorthand for a result with this crate's [`Error`].
+pub type Result<T = ()> = std::result::Result<T, Error>;
 
 /// Members of this trait can be returned from a main function annotated with [`wheel::main`].
 pub trait MainOutput {
@@ -50,7 +96,7 @@ impl MainOutput for () {
     }
 }
 
-impl<T: MainOutput, E: fmt::Display> MainOutput for Result<T, E> {
+impl<T: MainOutput, E: fmt::Display> MainOutput for std::result::Result<T, E> {
     fn exit(self, cmd_name: &'static str) -> ! {
         match self {
             Ok(x) => x.exit(cmd_name),
@@ -80,7 +126,7 @@ impl CustomExit for () {
     }
 }
 
-impl<T: CustomExit, E: CustomExit> CustomExit for Result<T, E> {
+impl<T: CustomExit, E: CustomExit> CustomExit for std::result::Result<T, E> {
     fn exit(self, cmd_name: &'static str) -> ! {
         match self {
             Ok(x) => x.exit(cmd_name),

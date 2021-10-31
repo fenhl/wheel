@@ -78,7 +78,7 @@ impl std::error::Error for Error {}
 /// A shorthand for a result with this crate's [`Error`].
 pub type Result<T = ()> = std::result::Result<T, Error>;
 
-/// Members of this trait can be returned from a main function annotated with [`wheel::main`].
+/// Members of this trait can be returned from a main function annotated with [`main`].
 pub trait MainOutput {
     /// Exits from the program using this value, displaying it and the given command name (usually `CARGO_PKG_NAME`) in case of an error.
     fn exit(self, cmd_name: &'static str) -> !;
@@ -108,7 +108,7 @@ impl<T: MainOutput, E: fmt::Display> MainOutput for std::result::Result<T, E> {
     }
 }
 
-/// Use this trait together with a `custom_exit` argument on [`wheel::main`] to customize the behavior of the program when exiting with an error.
+/// Use this trait together with a `custom_exit` argument on [`main`] to customize the behavior of the program when exiting with an error.
 pub trait CustomExit {
     /// Exits from the program using this value, displaying it and the given command name (usually `CARGO_PKG_NAME`) in case of an error.
     fn exit(self, cmd_name: &'static str) -> !;

@@ -175,7 +175,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
         Ok(Some(FnArg::Typed(arg))) => {
             let arg_ty = &arg.ty;
             match parse_mode {
-                ParseMode::Clap => (quote!(), quote!(#arg), quote!(<#arg_ty as ::wheel::clap::Clap>::parse()), quote!(args), quote!(args), quote!()),
+                ParseMode::Clap => (quote!(), quote!(#arg), quote!(<#arg_ty as ::wheel::clap::Parser>::parse()), quote!(args), quote!(args), quote!()),
                 ParseMode::Paw => (quote!(), quote!(#arg), quote!(<#arg_ty as ::wheel::paw::ParseArgs>::parse_args()), quote!(::core::result::Result::Ok(args)), quote!(args), quote!(::core::result::Result::Err(e) => {
                     eprintln!("{}: error parsing command line arguments: {}", env!("CARGO_PKG_NAME"), e);
                     ::std::process::exit(1);

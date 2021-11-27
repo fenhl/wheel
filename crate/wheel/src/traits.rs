@@ -5,7 +5,10 @@ use {
         io,
         path::Path,
     },
-    crate::Error,
+    crate::{
+        Error,
+        Result,
+    },
 };
 
 /// This trait is used by [`IoResultExt`] to convert [`io::Error`] to a generic error type.
@@ -63,13 +66,13 @@ pub trait SyncCommandOutputExt {
     type Ok;
 
     /// Errors if the command doesn't exit successfully.
-    fn check(self, name: &'static str) -> Result<Self::Ok, Error>;
+    fn check(self, name: &'static str) -> Result<Self::Ok>;
 }
 
 impl SyncCommandOutputExt for std::process::Command {
     type Ok = std::process::Output;
 
-    fn check(mut self, name: &'static str) -> Result<Self::Ok, Error> {
+    fn check(mut self, name: &'static str) -> Result<Self::Ok> {
         (&mut self).check(name)
     }
 }
@@ -77,7 +80,7 @@ impl SyncCommandOutputExt for std::process::Command {
 impl<'a> SyncCommandOutputExt for &'a mut std::process::Command {
     type Ok = std::process::Output;
 
-    fn check(self, name: &'static str) -> Result<Self::Ok, Error> {
+    fn check(self, name: &'static str) -> Result<Self::Ok> {
         let output = self.output().at_unknown()?; //TODO annotate error with name?
         if output.status.success() {
             Ok(output)
@@ -90,7 +93,7 @@ impl<'a> SyncCommandOutputExt for &'a mut std::process::Command {
 impl SyncCommandOutputExt for std::process::Child {
     type Ok = std::process::Output;
 
-    fn check(self, name: &'static str) -> Result<Self::Ok, Error> {
+    fn check(self, name: &'static str) -> Result<Self::Ok> {
         let output = self.wait_with_output().at_unknown()?; //TODO annotate error with name?
         if output.status.success() {
             Ok(output)

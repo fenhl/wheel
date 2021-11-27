@@ -34,6 +34,7 @@ pub use wheel_derive::{
 #[cfg(feature = "tokio02")] #[doc(hidden)] pub use tokio02 as tokio;
 #[cfg(feature = "tokio03")] #[doc(hidden)] pub use tokio03 as tokio;
 
+#[cfg(feature = "tokio")] pub mod fs;
 pub mod traits;
 
 /// An error that can be returned from the [traits](crate::traits) in this crate.
@@ -75,8 +76,8 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-/// A shorthand for a result with this crate's [`Error`].
-pub type Result<T = ()> = std::result::Result<T, Error>;
+/// A shorthand for a result with defaults for both variants (unit and this crate's [`Error`], respectively).
+pub type Result<T = (), E = Error> = std::result::Result<T, E>;
 
 /// Members of this trait can be returned from a main function annotated with [`main`].
 pub trait MainOutput {
@@ -96,7 +97,7 @@ impl MainOutput for () {
     }
 }
 
-impl<T: MainOutput, E: fmt::Display> MainOutput for std::result::Result<T, E> {
+impl<T: MainOutput, E: fmt::Display> MainOutput for Result<T, E> {
     fn exit(self, cmd_name: &'static str) -> ! {
         match self {
             Ok(x) => x.exit(cmd_name),
@@ -126,7 +127,7 @@ impl CustomExit for () {
     }
 }
 
-impl<T: CustomExit, E: CustomExit> CustomExit for std::result::Result<T, E> {
+impl<T: CustomExit, E: CustomExit> CustomExit for Result<T, E> {
     fn exit(self, cmd_name: &'static str) -> ! {
         match self {
             Ok(x) => x.exit(cmd_name),

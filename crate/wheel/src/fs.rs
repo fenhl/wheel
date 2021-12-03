@@ -6,7 +6,10 @@ use {
             self,
             IoSlice,
         },
-        path::Path,
+        path::{
+            Path,
+            PathBuf,
+        },
         pin::Pin,
         task::{
             Context,
@@ -28,8 +31,9 @@ use {
 };
 
 /// A wrapper around [`tokio::fs::File`].
+#[derive(Debug)]
 pub struct File {
-    //path: PathBuf,
+    path: PathBuf,
     inner: tokio::fs::File,
 }
 
@@ -39,7 +43,7 @@ impl File {
         let path = path.as_ref();
         Ok(Self {
             inner: tokio::fs::File::open(path).await.at(path)?,
-            //path,
+            path: path.to_owned(),
         })
     }
 
@@ -48,7 +52,7 @@ impl File {
         let path = path.as_ref();
         Ok(Self {
             inner: tokio::fs::File::create(path).await.at(path)?,
-            //path,
+            path: path.to_owned(),
         })
     }
 
@@ -57,8 +61,13 @@ impl File {
         let path = path.as_ref();
         Ok(Self {
             inner: options.open(path).await.at(path)?,
-            //path,
+            path: path.to_owned(),
         })
+    }
+
+    /// A wrapper around [`tokio::fs::File::sync_all`].
+    pub async fn sync_all(&self) -> Result {
+        self.inner.sync_all().await.at(&self.path)
     }
 }
 

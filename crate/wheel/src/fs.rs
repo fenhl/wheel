@@ -13,7 +13,14 @@ use {
             Poll,
         },
     },
-    tokio::io::AsyncWrite,
+    tokio::{
+        fs::OpenOptions,
+        io::{
+            AsyncRead,
+            AsyncSeek,
+            AsyncWrite,
+        },
+    },
     crate::{
         Result,
         traits::IoResultExt as _,
@@ -27,6 +34,15 @@ pub struct File {
 }
 
 impl File {
+    /// A wrapper around [`tokio::fs::File::open`].
+    pub async fn open(path: impl AsRef<Path>) -> Result<Self> {
+        let path = path.as_ref();
+        Ok(Self {
+            inner: tokio::fs::File::open(path).await.at(path)?,
+            //path,
+        })
+    }
+
     /// A wrapper around [`tokio::fs::File::create`].
     pub async fn create(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
@@ -34,6 +50,31 @@ impl File {
             inner: tokio::fs::File::create(path).await.at(path)?,
             //path,
         })
+    }
+
+    /// A wrapper around [`tokio::fs::OpenOptions::open`].
+    pub async fn from_options(options: &OpenOptions, path: impl AsRef<Path>) -> Result<Self> {
+        let path = path.as_ref();
+        Ok(Self {
+            inner: options.open(path).await.at(path)?,
+            //path,
+        })
+    }
+}
+
+impl AsyncRead for File {
+    fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut tokio::io::ReadBuf<'_>) -> Poll<io::Result<()>> {
+        Pin::new(&mut self.inner).poll_read(cx, buf) //TODO include path in error?
+    }
+}
+
+impl AsyncSeek for File {
+    fn start_seek(mut self: Pin<&mut Self>, position: io::SeekFrom) -> io::Result<()> {
+        Pin::new(&mut self.inner).start_seek(position) //TODO include path in error?
+    }
+
+    fn poll_complete(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<u64>> {
+        Pin::new(&mut self.inner).poll_complete(cx) //TODO include path in error?
     }
 }
 

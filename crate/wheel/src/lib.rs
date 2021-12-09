@@ -37,6 +37,24 @@ pub use wheel_derive::{
 #[cfg(feature = "tokio")] pub mod fs;
 pub mod traits;
 
+/// Prints the given prompt to stdout, then reads and returns a line from stdin.
+#[macro_export] macro_rules! input {
+    ($($arg:tt)*) => {{
+        use std::io::{
+            prelude::*,
+            stdin,
+            stdout,
+        };
+
+        print!($($arg)*);
+        stdout().flush().and_then(|()| {
+            let mut buf = String::default();
+            stdin().read_line(&mut buf)?;
+            Ok(buf)
+        })
+    }};
+}
+
 /// An error that can be returned from the [traits](crate::traits) in this crate.
 #[allow(missing_docs)]
 #[derive(Debug)]

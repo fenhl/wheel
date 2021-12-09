@@ -1,6 +1,6 @@
 [package]
 name = "wheel"
-version = "0.4.4"
+version = "0.4.5"
 authors = ["Fenhl <fenhl@fenhl.net>"]
 edition = "2021"
 description = "Rust boilerplate. Reinventing the wheel so you don't have to."
@@ -40,4 +40,4 @@ optional = true
 
 [dependencies.wheel-derive]
 path = "../wheel-derive"
-version = "=0.4.4"
+version = "=0.4.5"

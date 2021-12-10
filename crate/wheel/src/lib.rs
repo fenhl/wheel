@@ -175,7 +175,7 @@ impl<T: CustomExit, E: CustomExit> CustomExit for Result<T, E> {
 pub fn choose<T>(prompt: &str, mut choices: HashMap<String, T>) -> io::Result<T> {
     let mut label = input!("{} [{}] ", prompt, choices.keys().join("/"))?;
     loop {
-        if let Some(choice) = choices.remove(&*label) {
+        if let Some(choice) = choices.remove(label.trim_end_matches('\n')) {
             return Ok(choice)
         }
         label = input!("unrecognized answer, type {}: ", choices.keys().join(" or "))?;

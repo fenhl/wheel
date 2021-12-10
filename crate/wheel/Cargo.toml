@@ -10,6 +10,7 @@ clap-beta = ["dep_clap_beta"]
 default = ["tokio"]
 
 [dependencies]
+itertools = "0.10"
 paw = "1" # used in proc macro
 
 [dependencies.dep_clap_beta] # used in proc macro

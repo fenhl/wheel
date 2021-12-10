@@ -11,11 +11,15 @@
     warnings,
 )]
 
-use std::{
-    convert::Infallible as Never,
-    fmt,
-    io,
-    path::PathBuf,
+use {
+    std::{
+        collections::HashMap,
+        convert::Infallible as Never,
+        fmt,
+        io,
+        path::PathBuf,
+    },
+    itertools::Itertools as _,
 };
 pub use wheel_derive::{
     FromArc,
@@ -164,5 +168,16 @@ impl<T: CustomExit, E: CustomExit> CustomExit for Result<T, E> {
             Ok(x) => x.exit(cmd_name),
             Err(e) => e.exit(cmd_name),
         }
+    }
+}
+
+/// Repeatedly prompts the user until they input a valid choice.
+pub fn choose<T>(prompt: &str, mut choices: HashMap<String, T>) -> io::Result<T> {
+    let mut label = input!("{} [{}] ", prompt, choices.keys().join("/"))?;
+    loop {
+        if let Some(choice) = choices.remove(&*label) {
+            return Ok(choice)
+        }
+        label = input!("unrecognized answer, type {}: ", choices.keys().join(" or "))?;
     }
 }

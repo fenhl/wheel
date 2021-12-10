@@ -55,6 +55,19 @@ pub mod traits;
     }};
 }
 
+/// Prints the given text to stdout, without appending a newline but making sure it's actually displayed
+#[macro_export] macro_rules! print_flush {
+    ($($arg:tt)*) => {{
+        use std::io::{
+            prelude::*,
+            stdout,
+        };
+
+        print!($($arg)*);
+        stdout().flush()
+    }};
+}
+
 /// An error that can be returned from the [traits](crate::traits) in this crate.
 #[allow(missing_docs)]
 #[derive(Debug)]

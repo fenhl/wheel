@@ -143,18 +143,26 @@ enum ParseMode {
 /// * It must return `()` or a `Result<(), E>`, for some `E` that implements `Display` (not necessarily the same as the `paw` error).
 /// * Any error returned from argument parsing or the function body will be displayed and the process will exit with status code `1`.
 ///
-/// The attribute can be specified as `#[wheel::main(clap)]` to parse arguments using the [`clap` 3 beta](https://docs.rs/clap/3.0.0-beta.4) instead of `paw`. This requires the unstable `wheel` crate feature `clap-beta`.
+/// The attribute takes optional parameters to modify its behavior:
+///
+/// * Specify as `#[wheel::main(clap)]` to parse arguments using the [`clap` 3 release candidate](https://docs.rs/clap/3.0.0-rc.7) instead of [`paw`](https://docs.rs/paw). This requires the unstable `wheel` crate feature `clap-beta`.
+/// * Specify as `#[wheel::main(custom_exit)]` to handle the `main` function's return value using the `wheel::CustomExit` trait instead of `wheel::MainOutput`, allowing to customize error handling behavior.
+/// * Specify as `#[wheel::main(rocket)]` to initialize the async runtime using [`rocket::main`](https://docs.rs/rocket/0.5.0-rc.1/rocket/attr.main.html) instead of [`tokio::main`](https://docs.rs/tokio/latest/tokio/attr.main.html). This requires the unstable `wheel` crate feature `rocket-beta`.
+///
+/// These parameters can also be combined, e.g. `#[wheel::main(clap, custom_exit, rocket)]`.
 #[proc_macro_attribute]
 pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as AttributeArgs);
     let mut exit_trait = quote!(::wheel::MainOutput);
     let mut parse_mode = ParseMode::Paw;
+    let mut use_rocket = false;
     for arg in args {
         if let NestedMeta::Meta(Meta::Path(ref path)) = arg {
             if let Some(ident) = path.get_ident() {
                 match &*ident.to_string() {
                     "clap" => parse_mode = ParseMode::Clap,
                     "custom_exit" => exit_trait = quote!(::wheel::CustomExit),
+                    "rocket" => use_rocket = true,
                     _ => return quote_spanned! {arg.span()=>
                         compile_error!("unexpected wheel::main attribute argument")
                     }.into(),
@@ -168,8 +176,8 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     }
     let main_fn = parse_macro_input!(item as ItemFn);
     let asyncness = &main_fn.sig.asyncness;
-    let use_tokio = asyncness.as_ref().map(|_| quote!(use ::wheel::tokio;));
-    let main_prefix = asyncness.as_ref().map(|async_keyword| quote!(#[tokio::main] #async_keyword));
+    let use_tokio = asyncness.as_ref().map(|_| if use_rocket { quote!(use ::wheel::rocket;) } else { quote!(use ::wheel::tokio;) });
+    let main_prefix = asyncness.as_ref().map(|async_keyword| if use_rocket { quote!(#[rocket::main] #async_keyword) } else { quote!(#[tokio::main] #async_keyword) });
     let awaitness = asyncness.as_ref().map(|_| quote!(.await));
     let (items, arg, args_match, args_pat, args, err_arm) = match main_fn.sig.inputs.iter().at_most_one() {
         Ok(Some(FnArg::Typed(arg))) => {

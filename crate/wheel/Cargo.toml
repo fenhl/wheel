@@ -1,6 +1,6 @@
 [package]
 name = "wheel"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Fenhl <fenhl@fenhl.net>"]
 edition = "2021"
 description = "Rust boilerplate. Reinventing the wheel so you don't have to."
@@ -8,6 +8,7 @@ description = "Rust boilerplate. Reinventing the wheel so you don't have to."
 [features]
 clap-beta = ["dep_clap_beta"]
 default = ["tokio"]
+rocket-beta = ["dep_rocket_beta"]
 
 [dependencies]
 itertools = "0.10"
@@ -15,7 +16,12 @@ paw = "1" # used in proc macro
 
 [dependencies.dep_clap_beta] # used in proc macro
 package = "clap"
-version = "3.0.0-beta.5"
+version = "3.0.0-rc.7"
+optional = true
+
+[dependencies.dep_rocket_beta] # used in proc macro
+package = "rocket"
+version = "0.5.0-rc.1"
 optional = true
 
 [dependencies.structopt] # used in proc macro
@@ -41,4 +47,4 @@ optional = true
 
 [dependencies.wheel-derive]
 path = "../wheel-derive"
-version = "=0.4.5"
+version = "=0.4.6"

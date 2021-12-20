@@ -34,6 +34,7 @@ pub use wheel_derive::{
     structopt,
 };
 #[cfg(feature = "clap-beta")] #[doc(hidden)] pub use dep_clap_beta as clap;
+#[cfg(feature = "rocket-beta")] #[doc(hidden)] pub use dep_rocket_beta as rocket;
 #[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;
 #[cfg(feature = "tokio02")] #[doc(hidden)] pub use tokio02 as tokio;
 #[cfg(feature = "tokio03")] #[doc(hidden)] pub use tokio03 as tokio;

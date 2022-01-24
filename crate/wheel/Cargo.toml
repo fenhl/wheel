@@ -1,6 +1,6 @@
 [package]
 name = "wheel"
-version = "0.4.6"
+version = "0.4.7"
 authors = ["Fenhl <fenhl@fenhl.net>"]
 edition = "2021"
 description = "Rust boilerplate. Reinventing the wheel so you don't have to."
@@ -11,6 +11,7 @@ default = ["tokio"]
 rocket-beta = ["dep_rocket_beta"]
 
 [dependencies]
+async-trait = "0.1"
 itertools = "0.10"
 paw = "1" # used in proc macro
 
@@ -30,7 +31,7 @@ features = ["paw"]
 
 [dependencies.tokio]
 version = "1"
-features = ["fs", "macros", "rt-multi-thread"]
+features = ["fs", "macros", "process", "rt-multi-thread"]
 optional = true
 
 [dependencies.tokio02]
@@ -47,4 +48,4 @@ optional = true
 
 [dependencies.wheel-derive]
 path = "../wheel-derive"
-version = "=0.4.6"
+version = "=0.4.7"

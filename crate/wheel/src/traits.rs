@@ -5,6 +5,7 @@ use {
         io,
         path::Path,
     },
+    async_trait::async_trait,
     crate::{
         Error,
         Result,
@@ -56,6 +57,31 @@ impl<T> IoResultExt for io::Result<T> {
         match self {
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(T::default()),
             _ => self,
+        }
+    }
+}
+
+/// Adds a `check` method which errors if the command doesn't exit successfully.
+#[async_trait]
+pub trait AsyncCommandOutputExt {
+    /// The type retrurned by `check` in the success case.
+    type Ok;
+
+    /// Errors if the command doesn't exit successfully.
+    async fn check(self, name: &'static str) -> Result<Self::Ok>;
+}
+
+#[cfg(feature = "tokio")]
+#[async_trait]
+impl AsyncCommandOutputExt for tokio::process::Command {
+    type Ok = std::process::Output;
+
+    async fn check(mut self, name: &'static str) -> Result<Self::Ok> {
+        let output = self.output().await.at_unknown()?; //TODO annotate error with name?
+        if output.status.success() {
+            Ok(output)
+        } else {
+            Err(Error::CommandExit { name, output })
         }
     }
 }

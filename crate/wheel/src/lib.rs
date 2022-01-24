@@ -20,6 +20,7 @@ use {
         path::PathBuf,
     },
     itertools::Itertools as _,
+    thiserror::Error,
 };
 pub use wheel_derive::{
     FromArc,
@@ -75,15 +76,18 @@ pub mod traits;
 
 /// An error that can be returned from the [traits](crate::traits) in this crate.
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
     /// A subprocess exited with a non-success status.
+    #[error("command `{name}` exited with {}", .output.status)]
     CommandExit {
         /// The name of the subprocess, as indicated by the `check` call.
         name: &'static str,
         output: std::process::Output,
     },
+    #[error("I/O error{}: {inner}", if let Some(path) = .at { format!(" at {}", path.display()) } else { format!("") })]
     Io {
+        #[source]
         inner: io::Error,
         /// The path where this error occurred, if known.
         at: Option<PathBuf>,
@@ -99,18 +103,6 @@ impl traits::FromIoError for Error {
         Self::Io { inner, at: None }
     }
 }
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::CommandExit { name, output } => write!(f, "command `{}` exited with {}", name, output.status),
-            Self::Io { inner, at: Some(path) } => write!(f, "I/O error at {}: {}", path.display(), inner),
-            Self::Io { inner, at: None } => write!(f, "I/O error: {}", inner),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
 
 /// A shorthand for a result with defaults for both variants (unit and this crate's [`Error`], respectively).
 pub type Result<T = (), E = Error> = std::result::Result<T, E>;

@@ -77,6 +77,16 @@ impl AsyncCommandOutputExt for tokio::process::Command {
     type Ok = std::process::Output;
 
     async fn check(mut self, name: &'static str) -> Result<Self::Ok> {
+        (&mut self).check(name).await
+    }
+}
+
+#[cfg(feature = "tokio")]
+#[async_trait]
+impl<'a> AsyncCommandOutputExt for &'a mut tokio::process::Command {
+    type Ok = std::process::Output;
+
+    async fn check(mut self, name: &'static str) -> Result<Self::Ok> {
         let output = self.output().await.at_unknown()?; //TODO annotate error with name?
         if output.status.success() {
             Ok(output)

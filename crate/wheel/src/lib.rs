@@ -30,11 +30,7 @@ pub use wheel_derive::{
 };
 
 // used in proc macro:
-#[doc(hidden)] pub use {
-    paw,
-    structopt,
-};
-#[cfg(feature = "clap-beta")] #[doc(hidden)] pub use dep_clap_beta as clap;
+#[doc(hidden)] pub use clap;
 #[cfg(feature = "rocket-beta")] #[doc(hidden)] pub use dep_rocket_beta as rocket;
 #[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;
 #[cfg(feature = "tokio02")] #[doc(hidden)] pub use tokio02 as tokio;

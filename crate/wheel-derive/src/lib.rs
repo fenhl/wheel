@@ -140,6 +140,7 @@ pub fn lib(_: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// The attribute takes optional parameters to modify its behavior:
 ///
+/// * Specify as `#[wheel::main(debug)]` to display the `Debug` output of the value returned from `main` instead of using `wheel::MainOutput`. Note that the exit code will always be 1.
 /// * Specify as `#[wheel::main(custom_exit)]` to handle the `main` function's return value using the `wheel::CustomExit` trait instead of `wheel::MainOutput`, allowing to customize error handling behavior.
 /// * Specify as `#[wheel::main(rocket)]` to initialize the async runtime using [`rocket::main`](https://docs.rs/rocket/0.5.0-rc.1/rocket/attr.main.html) instead of [`tokio::main`](https://docs.rs/tokio/latest/tokio/attr.main.html). This requires the unstable `wheel` crate feature `rocket-beta`.
 ///
@@ -154,6 +155,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             if let Some(ident) = path.get_ident() {
                 match &*ident.to_string() {
                     "custom_exit" => exit_trait = quote!(::wheel::CustomExit),
+                    "debug" => exit_trait = quote!(::wheel::DebugExit),
                     "rocket" => use_rocket = true,
                     _ => return quote_spanned! {arg.span()=>
                         compile_error!("unexpected wheel::main attribute argument")

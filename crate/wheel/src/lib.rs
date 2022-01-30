@@ -133,6 +133,17 @@ impl<T: MainOutput, E: fmt::Display> MainOutput for Result<T, E> {
     }
 }
 
+#[doc(hidden)] pub trait DebugExit {
+    fn exit(self, cmd_name: &'static str) -> !;
+}
+
+impl<T: fmt::Debug> DebugExit for T {
+    fn exit(self, cmd_name: &'static str) -> ! {
+        eprintln!("{}: {:?}", cmd_name, self);
+        std::process::exit(1)
+    }
+}
+
 /// Use this trait together with a `custom_exit` argument on [`main`] to customize the behavior of the program when exiting with an error.
 pub trait CustomExit {
     /// Exits from the program using this value, displaying it and the given command name (usually `CARGO_PKG_NAME`) in case of an error.

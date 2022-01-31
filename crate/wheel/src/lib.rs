@@ -133,14 +133,14 @@ impl<T: MainOutput, E: fmt::Display> MainOutput for Result<T, E> {
     }
 }
 
-#[doc(hidden)] pub trait DebugExit {
+#[doc(hidden)] pub trait DebugMainOutput {
     fn exit(self, cmd_name: &'static str) -> !;
 }
 
-impl<T: fmt::Debug> DebugExit for T {
+impl<T: fmt::Debug + MainOutput> DebugMainOutput for T {
     fn exit(self, cmd_name: &'static str) -> ! {
         eprintln!("{}: {:?}", cmd_name, self);
-        std::process::exit(1)
+        MainOutput::exit(self, cmd_name)
     }
 }
 

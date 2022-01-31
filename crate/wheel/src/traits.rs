@@ -96,6 +96,36 @@ impl<'a> AsyncCommandOutputExt for &'a mut tokio::process::Command {
     }
 }
 
+#[cfg(feature = "tokio")]
+#[async_trait]
+impl AsyncCommandOutputExt for tokio::process::Child {
+    type Ok = std::process::Output;
+
+    async fn check(mut self, name: &'static str) -> Result<Self::Ok> {
+        let output = self.wait_with_output().await.at_unknown()?; //TODO annotate error with name?
+        if output.status.success() {
+            Ok(output)
+        } else {
+            Err(Error::CommandExit { name, output })
+        }
+    }
+}
+
+#[cfg(feature = "tokio")]
+#[async_trait]
+impl<'a> AsyncCommandOutputExt for &'a mut tokio::process::Child {
+    type Ok = std::process::ExitStatus;
+
+    async fn check(mut self, name: &'static str) -> Result<Self::Ok> {
+        let status = self.wait().await.at_unknown()?; //TODO annotate error with name?
+        if status.success() {
+            Ok(status)
+        } else {
+            Err(Error::CommandExitStatus { name, status })
+        }
+    }
+}
+
 /// Adds a `check` method which errors if the command doesn't exit successfully.
 pub trait SyncCommandOutputExt {
     /// The type returned by `check` in the success case.

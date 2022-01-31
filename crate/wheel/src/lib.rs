@@ -74,12 +74,19 @@ pub mod traits;
 #[allow(missing_docs)]
 #[derive(Debug, Error)]
 pub enum Error {
-    /// A subprocess exited with a non-success status.
+    /// A subprocess exited with a non-success status. Output information is available.
     #[error("command `{name}` exited with {}", .output.status)]
     CommandExit {
         /// The name of the subprocess, as indicated by the `check` call.
         name: &'static str,
         output: std::process::Output,
+    },
+    /// A subprocess exited with a non-success status. Output information is unavailable.
+    #[error("command `{name}` exited with {}", .status)]
+    CommandExitStatus {
+        /// The name of the subprocess, as indicated by the `check` call.
+        name: &'static str,
+        status: std::process::ExitStatus,
     },
     #[error("I/O error{}: {inner}", if let Some(path) = .at { format!(" at {}", path.display()) } else { format!("") })]
     Io {

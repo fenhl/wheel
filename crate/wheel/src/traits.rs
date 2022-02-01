@@ -2,6 +2,7 @@
 
 use {
     std::{
+        convert::Infallible,
         io,
         path::Path,
     },
@@ -11,6 +12,21 @@ use {
         Result,
     },
 };
+
+/// A convenience method for working with infallible results
+pub trait ResultNeverExt<T> {
+    /// Returns the `Ok` variant of this result.
+    fn never_unwrap(self) -> T;
+}
+
+impl<T> ResultNeverExt<T> for Result<T, Infallible> {
+    fn never_unwrap(self) -> T {
+        match self {
+            Ok(inner) => inner,
+            Err(never) => match never {},
+        }
+    }
+}
 
 /// This trait is used by [`IoResultExt`] to convert [`io::Error`] to a generic error type.
 pub trait FromIoError {

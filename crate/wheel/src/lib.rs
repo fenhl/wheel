@@ -70,6 +70,27 @@ pub mod traits;
     }};
 }
 
+/// Used in [`Error::Io`] as metadata for where the error occurred.
+#[derive(Debug)]
+pub enum IoErrorContext {
+    /// The error was not annotated with any context.
+    Unknown,
+    /// The error occurred while working with the given path.
+    Path(PathBuf),
+    /// The error occurred while trying to run a command with the given name.
+    Command(&'static str),
+}
+
+impl fmt::Display for IoErrorContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Unknown => write!(f, "I/O error"),
+            Self::Path(path) => write!(f, "I/O error at {}", path.display()),
+            Self::Command(name) => write!(f, "in command `{name}`"),
+        }
+    }
+}
+
 /// An error that can be returned from the [traits](crate::traits) in this crate.
 #[allow(missing_docs)]
 #[derive(Debug, Error)]
@@ -88,22 +109,26 @@ pub enum Error {
         name: &'static str,
         status: std::process::ExitStatus,
     },
-    #[error("I/O error{}: {inner}", if let Some(path) = .at { format!(" at {}", path.display()) } else { format!("") })]
+    #[error("{context}: {inner}")]
     Io {
         #[source]
         inner: io::Error,
-        /// The path where this error occurred, if known.
-        at: Option<PathBuf>,
+        /// The path or command where this error occurred, if known.
+        context: IoErrorContext,
     },
 }
 
 impl traits::FromIoError for Error {
-    fn from_io_at(inner: io::Error, path: impl AsRef<std::path::Path>) -> Self {
-        Self::Io { inner, at: Some(path.as_ref().to_owned()) }
+    fn from_io_at_unknown(inner: io::Error) -> Self {
+        Self::Io { inner, context: IoErrorContext::Unknown }
     }
 
-    fn from_io_at_unknown(inner: io::Error) -> Self {
-        Self::Io { inner, at: None }
+    fn from_io_at(inner: io::Error, path: impl AsRef<std::path::Path>) -> Self {
+        Self::Io { inner, context: IoErrorContext::Path(path.as_ref().to_owned()) }
+    }
+
+    fn from_io_at_command(inner: io::Error, name: &'static str) -> Self {
+        Self::Io { inner, context: IoErrorContext::Command(name) }
     }
 }
 

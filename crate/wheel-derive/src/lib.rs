@@ -181,7 +181,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
         Ok(Some(FnArg::Receiver(_))) => return quote_spanned! {main_fn.sig.inputs.span()=>
             compile_error!("main should not take self");
         }.into(),
-        Ok(None) => (quote!(), quote!(::wheel::clap::App::new(env!("CARGO_PKG_NAME")).get_matches();), quote!()),
+        Ok(None) => (quote!(), quote!(::wheel::clap::App::new(env!("CARGO_PKG_NAME")).version(env!("CARGO_PKG_VERSION")).get_matches();), quote!()),
         Err(_) => return quote_spanned! {main_fn.sig.inputs.span()=>
             compile_error!("main should take one or zero arguments");
         }.into(),

@@ -169,10 +169,28 @@ impl<T: MainOutput, E: fmt::Display> MainOutput for Result<T, E> {
     fn exit(self, cmd_name: &'static str) -> !;
 }
 
-impl<T: fmt::Debug + MainOutput> DebugMainOutput for T {
+impl DebugMainOutput for Never {
+    fn exit(self, _: &'static str) -> ! {
+        match self {}
+    }
+}
+
+impl DebugMainOutput for () {
+    fn exit(self, _: &'static str) -> ! {
+        std::process::exit(0)
+    }
+}
+
+impl<T: MainOutput, E: fmt::Debug + fmt::Display> DebugMainOutput for Result<T, E> {
     fn exit(self, cmd_name: &'static str) -> ! {
-        eprintln!("{}: {:?}", cmd_name, self);
-        MainOutput::exit(self, cmd_name)
+        match self {
+            Ok(x) => x.exit(cmd_name),
+            Err(e) => {
+                eprintln!("{cmd_name}: {e}");
+                eprintln!("debug info: {e:?}");
+                std::process::exit(1)
+            }
+        }
     }
 }
 

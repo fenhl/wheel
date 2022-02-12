@@ -74,7 +74,7 @@ pub fn from_arc(input: TokenStream) -> TokenStream {
                 }
             })
             .collect_vec(),
-        _ => return quote!(compile_error!("derive(FromArc) is only implemented for enums")).into(),
+        _ => return quote!(compile_error!("derive(FromArc) is only implemented for enums");).into(),
     };
     TokenStream::from(quote! {
         #(#derives)*
@@ -158,14 +158,14 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
                     "debug" => exit_trait = quote!(::wheel::DebugMainOutput),
                     "rocket" => use_rocket = true,
                     _ => return quote_spanned! {arg.span()=>
-                        compile_error!("unexpected wheel::main attribute argument")
+                        compile_error!("unexpected wheel::main attribute argument");
                     }.into(),
                 }
                 continue
             }
         }
         return quote_spanned! {arg.span()=>
-            compile_error!("unexpected wheel::main attribute argument")
+            compile_error!("unexpected wheel::main attribute argument");
         }.into()
     }
     let main_fn = parse_macro_input!(item as ItemFn);

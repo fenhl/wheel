@@ -1,18 +1,11 @@
 //! This crate contains boilerplate that is useful in almost every Rust crate.
 
-#![deny(
-    missing_docs,
-    rust_2018_idioms, // this lint is actually about idioms that are *outdated* in Rust 2018
-    unused,
-    unused_crate_dependencies,
-    unused_import_braces,
-    unused_lifetimes,
-    unused_qualifications,
-    warnings,
-)]
+#![deny(missing_docs, rust_2018_idioms, unused, unused_crate_dependencies, unused_import_braces, unused_lifetimes, unused_qualifications, warnings)]
+#![forbid(unsafe_code)]
 
 use {
     std::{
+        borrow::Cow,
         collections::HashMap,
         convert::Infallible as Never,
         fmt,
@@ -78,7 +71,7 @@ pub enum IoErrorContext {
     /// The error occurred while working with the given path.
     Path(PathBuf),
     /// The error occurred while trying to run a command with the given name.
-    Command(&'static str),
+    Command(Cow<'static, str>),
 }
 
 impl fmt::Display for IoErrorContext {
@@ -99,14 +92,14 @@ pub enum Error {
     #[error("command `{name}` exited with {}", .output.status)]
     CommandExit {
         /// The name of the subprocess, as indicated by the `check` call.
-        name: &'static str,
+        name: Cow<'static, str>,
         output: std::process::Output,
     },
     /// A subprocess exited with a non-success status. Output information is unavailable.
     #[error("command `{name}` exited with {}", .status)]
     CommandExitStatus {
         /// The name of the subprocess, as indicated by the `check` call.
-        name: &'static str,
+        name: Cow<'static, str>,
         status: std::process::ExitStatus,
     },
     #[error("{context}: {inner}")]
@@ -127,8 +120,8 @@ impl traits::FromIoError for Error {
         Self::Io { inner, context: IoErrorContext::Path(path.as_ref().to_owned()) }
     }
 
-    fn from_io_at_command(inner: io::Error, name: &'static str) -> Self {
-        Self::Io { inner, context: IoErrorContext::Command(name) }
+    fn from_io_at_command(inner: io::Error, name: impl Into<Cow<'static, str>>) -> Self {
+        Self::Io { inner, context: IoErrorContext::Command(name.into()) }
     }
 }
 

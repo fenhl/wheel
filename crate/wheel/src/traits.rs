@@ -2,6 +2,7 @@
 
 use {
     std::{
+        borrow::Cow,
         convert::Infallible,
         io,
         path::Path,
@@ -35,7 +36,7 @@ pub trait FromIoError {
     /// Constructs a `Self` from the given I/O error and an annotation specifying where in the filesystem the error occurred.
     fn from_io_at(e: io::Error, path: impl AsRef<Path>) -> Self;
     /// Constructs a `Self` from the given I/O error and an annotation specifying that the error occurred when trying to execute the named command.
-    fn from_io_at_command(e: io::Error, name: &'static str) -> Self;
+    fn from_io_at_command(e: io::Error, name: impl Into<Cow<'static, str>>) -> Self;
 }
 
 /// Allows converting an [`io::Result`] to any [`Result`] type whose [`Err`] variant implements [`FromIoError`], optionally annotating it with the location where the error occurred.
@@ -48,7 +49,7 @@ pub trait IoResultExt {
     /// Converts the [`Err`] variant of `self` by annotating it with the given path.
     fn at<E: FromIoError, P: AsRef<Path>>(self, path: P) -> Result<Self::Ok, E>;
     /// Converts the [`Err`] variant of `self` by annotating it with the given command name.
-    fn at_command<E: FromIoError>(self, name: &'static str) -> Result<Self::Ok, E>;
+    fn at_command<E: FromIoError, S: Into<Cow<'static, str>>>(self, name: S) -> Result<Self::Ok, E>;
     /// Converts an [`Err`] with [`io::ErrorKind::AlreadyExists`] to `Ok(default())`.
     fn exist_ok(self) -> Self where Self::Ok: Default;
     /// Converts an [`Err`] with [`io::ErrorKind::NotFound`] to `Ok(default())`.
@@ -66,7 +67,7 @@ impl<T> IoResultExt for io::Result<T> {
         self.map_err(|e| E::from_io_at(e, path))
     }
 
-    fn at_command<E: FromIoError>(self, name: &'static str) -> Result<T, E> {
+    fn at_command<E: FromIoError, S: Into<Cow<'static, str>>>(self, name: S) -> Result<T, E> {
         self.map_err(|e| E::from_io_at_command(e, name))
     }
 
@@ -92,7 +93,7 @@ pub trait AsyncCommandOutputExt {
     type Ok;
 
     /// Errors if the command doesn't exit successfully.
-    async fn check(self, name: &'static str) -> Result<Self::Ok>;
+    async fn check(self, name: impl Into<Cow<'static, str>> + Clone + Send + 'static) -> Result<Self::Ok>;
 }
 
 #[cfg(feature = "tokio")]
@@ -100,7 +101,7 @@ pub trait AsyncCommandOutputExt {
 impl AsyncCommandOutputExt for tokio::process::Command {
     type Ok = std::process::Output;
 
-    async fn check(mut self, name: &'static str) -> Result<Self::Ok> {
+    async fn check(mut self, name: impl Into<Cow<'static, str>> + Clone + Send + 'static) -> Result<Self::Ok> {
         (&mut self).check(name).await
     }
 }
@@ -110,12 +111,12 @@ impl AsyncCommandOutputExt for tokio::process::Command {
 impl<'a> AsyncCommandOutputExt for &'a mut tokio::process::Command {
     type Ok = std::process::Output;
 
-    async fn check(mut self, name: &'static str) -> Result<Self::Ok> {
-        let output = self.output().await.at_command(name)?;
+    async fn check(mut self, name: impl Into<Cow<'static, str>> + Clone + Send + 'static) -> Result<Self::Ok> {
+        let output = self.output().await.at_command(name.clone())?;
         if output.status.success() {
             Ok(output)
         } else {
-            Err(Error::CommandExit { name, output })
+            Err(Error::CommandExit { name: name.into(), output })
         }
     }
 }
@@ -125,12 +126,12 @@ impl<'a> AsyncCommandOutputExt for &'a mut tokio::process::Command {
 impl AsyncCommandOutputExt for tokio::process::Child {
     type Ok = std::process::Output;
 
-    async fn check(mut self, name: &'static str) -> Result<Self::Ok> {
-        let output = self.wait_with_output().await.at_command(name)?;
+    async fn check(mut self, name: impl Into<Cow<'static, str>> + Clone + Send + 'static) -> Result<Self::Ok> {
+        let output = self.wait_with_output().await.at_command(name.clone())?;
         if output.status.success() {
             Ok(output)
         } else {
-            Err(Error::CommandExit { name, output })
+            Err(Error::CommandExit { name: name.into(), output })
         }
     }
 }
@@ -140,12 +141,12 @@ impl AsyncCommandOutputExt for tokio::process::Child {
 impl<'a> AsyncCommandOutputExt for &'a mut tokio::process::Child {
     type Ok = std::process::ExitStatus;
 
-    async fn check(mut self, name: &'static str) -> Result<Self::Ok> {
-        let status = self.wait().await.at_command(name)?;
+    async fn check(mut self, name: impl Into<Cow<'static, str>> + Clone + Send + 'static) -> Result<Self::Ok> {
+        let status = self.wait().await.at_command(name.clone())?;
         if status.success() {
             Ok(status)
         } else {
-            Err(Error::CommandExitStatus { name, status })
+            Err(Error::CommandExitStatus { name: name.into(), status })
         }
     }
 }
@@ -156,13 +157,13 @@ pub trait SyncCommandOutputExt {
     type Ok;
 
     /// Errors if the command doesn't exit successfully.
-    fn check(self, name: &'static str) -> Result<Self::Ok>;
+    fn check(self, name: impl Into<Cow<'static, str>> + Clone) -> Result<Self::Ok>;
 }
 
 impl SyncCommandOutputExt for std::process::Command {
     type Ok = std::process::Output;
 
-    fn check(mut self, name: &'static str) -> Result<Self::Ok> {
+    fn check(mut self, name: impl Into<Cow<'static, str>> + Clone) -> Result<Self::Ok> {
         (&mut self).check(name)
     }
 }
@@ -170,12 +171,12 @@ impl SyncCommandOutputExt for std::process::Command {
 impl<'a> SyncCommandOutputExt for &'a mut std::process::Command {
     type Ok = std::process::Output;
 
-    fn check(self, name: &'static str) -> Result<Self::Ok> {
-        let output = self.output().at_command(name)?;
+    fn check(self, name: impl Into<Cow<'static, str>> + Clone) -> Result<Self::Ok> {
+        let output = self.output().at_command(name.clone())?;
         if output.status.success() {
             Ok(output)
         } else {
-            Err(Error::CommandExit { name, output })
+            Err(Error::CommandExit { name: name.into(), output })
         }
     }
 }
@@ -183,12 +184,12 @@ impl<'a> SyncCommandOutputExt for &'a mut std::process::Command {
 impl SyncCommandOutputExt for std::process::Child {
     type Ok = std::process::Output;
 
-    fn check(self, name: &'static str) -> Result<Self::Ok> {
-        let output = self.wait_with_output().at_command(name)?;
+    fn check(self, name: impl Into<Cow<'static, str>> + Clone) -> Result<Self::Ok> {
+        let output = self.wait_with_output().at_command(name.clone())?;
         if output.status.success() {
             Ok(output)
         } else {
-            Err(Error::CommandExit { name, output })
+            Err(Error::CommandExit { name: name.into(), output })
         }
     }
 }

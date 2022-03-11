@@ -146,6 +146,12 @@ impl MainOutput for () {
     }
 }
 
+impl MainOutput for i32 {
+    fn exit(self, _: &'static str) -> ! {
+        std::process::exit(self)
+    }
+}
+
 impl<T: MainOutput, E: fmt::Display> MainOutput for Result<T, E> {
     fn exit(self, cmd_name: &'static str) -> ! {
         match self {

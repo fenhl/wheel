@@ -17,6 +17,7 @@ use {
 };
 pub use wheel_derive::{
     FromArc,
+    IsVerbose,
     bin,
     lib,
     main,
@@ -157,7 +158,7 @@ impl<T: MainOutput, E: fmt::Display> MainOutput for Result<T, E> {
         match self {
             Ok(x) => x.exit(cmd_name),
             Err(e) => {
-                eprintln!("{}: {}", cmd_name, e);
+                eprintln!("{cmd_name}: {e}");
                 std::process::exit(1)
             }
         }
@@ -191,6 +192,43 @@ impl<T: MainOutput, E: fmt::Debug + fmt::Display> DebugMainOutput for Result<T, 
             }
         }
     }
+}
+
+#[doc(hidden)] pub trait VerboseDebugMainOutput {
+    fn exit(self, cmd_name: &'static str, verbose: bool) -> !;
+}
+
+impl VerboseDebugMainOutput for Never {
+    fn exit(self, _: &'static str, _: bool) -> ! {
+        match self {}
+    }
+}
+
+impl VerboseDebugMainOutput for () {
+    fn exit(self, _: &'static str, _: bool) -> ! {
+        std::process::exit(0)
+    }
+}
+
+impl<T: MainOutput, E: fmt::Debug + fmt::Display> VerboseDebugMainOutput for Result<T, E> {
+    fn exit(self, cmd_name: &'static str, verbose: bool) -> ! {
+        match self {
+            Ok(x) => x.exit(cmd_name),
+            Err(e) => {
+                eprintln!("{cmd_name}: {e}");
+                if verbose {
+                    eprintln!("debug info: {e:?}");
+                }
+                std::process::exit(1)
+            }
+        }
+    }
+}
+
+/// Implement this trait for your `main` arguments to use the `verbose_debug` argument on [`main`].
+pub trait IsVerbose {
+    /// Returns whether a `--verbose` argument is present.
+    fn is_verbose(&self) -> bool;
 }
 
 /// Use this trait together with a `custom_exit` argument on [`main`] to customize the behavior of the program when exiting with an error.

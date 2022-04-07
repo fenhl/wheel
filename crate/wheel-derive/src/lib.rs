@@ -73,6 +73,22 @@ pub fn from_arc(input: TokenStream) -> TokenStream {
     })
 }
 
+/// Implements the `IsVerbose` trait for a struct with a `verbose: bool` field.
+///
+/// This trait is used with `#[wheel::main(verbose_debug)]`.
+#[proc_macro_derive(IsVerbose)]
+pub fn is_verbose(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let ty = input.ident;
+    TokenStream::from(quote! {
+        impl ::wheel::IsVerbose for #ty {
+            fn is_verbose(&self) -> bool {
+                self.verbose
+            }
+        }
+    })
+}
+
 /// Attribute macro for binary crates.
 ///
 /// This sets some lints to deny, including `warnings`.
@@ -132,23 +148,40 @@ pub fn lib(_: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// The attribute takes optional parameters to modify its behavior:
 ///
-/// * Specify as `#[wheel::main(debug)]` to display the `Debug` output of the value returned from `main` in addition to using `wheel::MainOutput`.
 /// * Specify as `#[wheel::main(custom_exit)]` to handle the `main` function's return value using the `wheel::CustomExit` trait instead of `wheel::MainOutput`, allowing to customize error handling behavior.
+/// * Specify as `#[wheel::main(debug)]` to display the `Debug` output of the value returned from `main` in addition to using `wheel::MainOutput`.
 /// * Specify as `#[wheel::main(rocket)]` to initialize the async runtime using [`rocket::main`](https://docs.rs/rocket/0.5.0-rc.1/rocket/attr.main.html) instead of [`tokio::main`](https://docs.rs/tokio/latest/tokio/attr.main.html). This requires the unstable `wheel` crate feature `rocket-beta`.
+/// * Specify as `#[wheel::main(verbose_debug)]` to enable `debug` behavior if `wheel::IsVerbose::is_verbose` returns `true` for the
 ///
-/// These parameters can also be combined, e.g. `#[wheel::main(clap, custom_exit, rocket)]`.
+/// The `rocket` parameter can also be combined with one of the others, e.g. `#[wheel::main(debug, rocket)]`.
 #[proc_macro_attribute]
 pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as AttributeArgs);
-    let mut exit_trait = quote!(::wheel::MainOutput);
+    let mut exit_trait = None;
+    let mut verbose_arg = false;
     let mut use_rocket = false;
     for arg in args {
         if let NestedMeta::Meta(Meta::Path(ref path)) = arg {
             if let Some(ident) = path.get_ident() {
                 match &*ident.to_string() {
-                    "custom_exit" => exit_trait = quote!(::wheel::CustomExit),
-                    "debug" => exit_trait = quote!(::wheel::DebugMainOutput),
+                    "custom_exit" => if exit_trait.replace(quote!(::wheel::CustomExit)).is_some() {
+                        return quote_spanned! {arg.span()=>
+                            compile_error!("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
+                        }.into()
+                    },
+                    "debug" => if exit_trait.replace(quote!(::wheel::DebugMainOutput)).is_some() {
+                        return quote_spanned! {arg.span()=>
+                            compile_error!("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
+                        }.into()
+                    },
                     "rocket" => use_rocket = true,
+                    "verbose_debug" => if exit_trait.replace(quote!(::wheel::VerboseDebugMainOutput)).is_some() {
+                        return quote_spanned! {arg.span()=>
+                            compile_error!("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
+                        }.into()
+                    } else {
+                        verbose_arg = true;
+                    },
                     _ => return quote_spanned! {arg.span()=>
                         compile_error!("unexpected wheel::main attribute argument");
                     }.into(),
@@ -160,6 +193,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             compile_error!("unexpected wheel::main attribute argument");
         }.into()
     }
+    let exit_trait = exit_trait.unwrap_or(quote!(::wheel::MainOutput));
     let main_fn = parse_macro_input!(item as ItemFn);
     let asyncness = &main_fn.sig.asyncness;
     let use_tokio = asyncness.as_ref().map(|_| if use_rocket { quote!(use ::wheel::rocket;) } else { quote!(use ::wheel::tokio;) });
@@ -168,18 +202,39 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let (arg, parse_args, args) = match main_fn.sig.inputs.iter().at_most_one() {
         Ok(Some(FnArg::Typed(arg))) => {
             let arg_ty = &arg.ty;
-            (quote!(#arg), quote_spanned!(arg.ty.span()=> let args = <#arg_ty as ::wheel::clap::Parser>::parse();), quote!(args))
+            let mut parse_args = quote_spanned!(arg.ty.span()=> let args = <#arg_ty as ::wheel::clap::Parser>::parse(););
+            if verbose_arg {
+                parse_args = quote_spanned! {arg.ty.span()=>
+                    #parse_args
+                    let verbose = ::wheel::IsVerbose::is_verbose(&args);
+                }
+            }
+            (quote!(#arg), parse_args, quote!(args))
         }
         Ok(Some(FnArg::Receiver(_))) => return quote_spanned! {main_fn.sig.inputs.span()=>
             compile_error!("main should not take self");
         }.into(),
-        Ok(None) => (quote!(), quote!(::wheel::clap::Command::new(env!("CARGO_PKG_NAME")).version(env!("CARGO_PKG_VERSION")).get_matches();), quote!()),
+        Ok(None) => {
+            let command = quote!(::wheel::clap::Command::new(env!("CARGO_PKG_NAME")).version(env!("CARGO_PKG_VERSION")));
+            let parse_args = if verbose_arg {
+                quote! {
+                    let matches = #command.arg(::wheel::clap::Arg::new("verbose").short('v').long("verbose").help("Display debug info if an error occurs")).get_matches();
+                    let verbose = matches.is_present("verbose");
+                }
+            } else {
+                quote! {
+                    #command.get_matches();
+                }
+            };
+            (quote!(), parse_args, quote!())
+        }
         Err(_) => return quote_spanned! {main_fn.sig.inputs.span()=>
             compile_error!("main should take one or zero arguments");
         }.into(),
     };
     let ret = main_fn.sig.output;
     let body = main_fn.block;
+    let verbose_arg = if verbose_arg { quote!(, verbose) } else { quote!() };
     TokenStream::from(quote! {
         #use_tokio
 
@@ -189,7 +244,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
             #parse_args
             let ret_val = main_inner(#args)#awaitness;
-            #exit_trait::exit(ret_val, env!("CARGO_PKG_NAME"))
+            #exit_trait::exit(ret_val, env!("CARGO_PKG_NAME") #verbose_arg)
         }
     })
 }

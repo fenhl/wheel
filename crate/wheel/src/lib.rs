@@ -27,8 +27,6 @@ pub use wheel_derive::{
 #[doc(hidden)] pub use clap;
 #[cfg(feature = "rocket-beta")] #[doc(hidden)] pub use dep_rocket_beta as rocket;
 #[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;
-#[cfg(feature = "tokio02")] #[doc(hidden)] pub use tokio02 as tokio;
-#[cfg(feature = "tokio03")] #[doc(hidden)] pub use tokio03 as tokio;
 
 #[cfg(feature = "tokio")] pub mod fs;
 pub mod traits;

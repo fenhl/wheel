@@ -27,18 +27,6 @@ version = "1"
 features = ["fs", "macros", "process", "rt-multi-thread"]
 optional = true
 
-[dependencies.tokio02]
-package = "tokio"
-version = "0.2"
-features = ["macros", "rt-threaded"]
-optional = true
-
-[dependencies.tokio03]
-package = "tokio"
-version = "0.3"
-features = ["macros", "rt-multi-thread"]
-optional = true
-
 [dependencies.wheel-derive]
 path = "../wheel-derive"
 version = "=0.6.2"

@@ -124,7 +124,7 @@ impl traits::FromIoError for Error {
     }
 }
 
-/// A shorthand for a result with defaults for both variants (unit and this crate's [`Error`], respectively).
+/// A shorthand for a result with defaults for both variants (unit and this crate's [`enum@Error`], respectively).
 pub type Result<T = (), E = Error> = std::result::Result<T, E>;
 
 /// Members of this trait can be returned from a main function annotated with [`main`].

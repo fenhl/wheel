@@ -13,6 +13,7 @@ use {
         Result,
     },
 };
+#[cfg(windows)] use std::os::windows::process::CommandExt as _;
 
 /// A convenience method for working with infallible results
 pub trait ResultNeverExt<T> {
@@ -83,6 +84,28 @@ impl<T> IoResultExt for io::Result<T> {
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(T::default()),
             _ => self,
         }
+    }
+}
+
+#[cfg_attr(feature = "tokio", doc = "Extension methods for [`tokio::process::Command`] and [`std::process::Command`]")]
+#[cfg_attr(not(feature = "tokio"), doc = "Extension methods for [`std::process::Command`]")]
+pub trait CommandExt {
+    /// Suppresses creating a console window on Windows. Has no effect on other platforms.
+    fn create_no_window(&mut self) -> &mut Self;
+}
+
+#[cfg(feature = "tokio")]
+impl CommandExt for tokio::process::Command {
+    fn create_no_window(&mut self) -> &mut tokio::process::Command {
+        #[cfg(windows)] { self.creation_flags(0x0800_0000) }
+        #[cfg(not(windows))] { self }
+    }
+}
+
+impl CommandExt for std::process::Command {
+    fn create_no_window(&mut self) -> &mut std::process::Command {
+        #[cfg(windows)] { self.creation_flags(0x0800_0000) }
+        #[cfg(not(windows))] { self }
     }
 }
 

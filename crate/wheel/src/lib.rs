@@ -268,7 +268,7 @@ pub fn choose<T>(prompt: &str, mut choices: HashMap<String, T>) -> io::Result<T>
 }
 
 /// Repeatedly prompts the user until they answer “yes” or “no”.
-pub fn yesno<T>(prompt: &str) -> io::Result<bool> {
+pub fn yesno(prompt: &str) -> io::Result<bool> {
     let mut label = input!("{prompt} [y/n] ")?;
     loop {
         match &*label.trim_end_matches(&['\r', '\n'][..]).to_ascii_lowercase() {

@@ -258,11 +258,23 @@ impl<T: CustomExit, E: CustomExit> CustomExit for Result<T, E> {
 
 /// Repeatedly prompts the user until they input a valid choice.
 pub fn choose<T>(prompt: &str, mut choices: HashMap<String, T>) -> io::Result<T> {
-    let mut label = input!("{} [{}] ", prompt, choices.keys().join("/"))?;
+    let mut label = input!("{prompt} [{}] ", choices.keys().join("/"))?;
     loop {
         if let Some(choice) = choices.remove(label.trim_end_matches(&['\r', '\n'][..])) {
             return Ok(choice)
         }
         label = input!("unrecognized answer, type {}: ", choices.keys().join(" or "))?;
+    }
+}
+
+/// Repeatedly prompts the user until they answer “yes” or “no”.
+pub fn yesno<T>(prompt: &str) -> io::Result<bool> {
+    let mut label = input!("{prompt} [y/n] ")?;
+    loop {
+        match &*label.trim_end_matches(&['\r', '\n'][..]).to_ascii_lowercase() {
+            "y" | "yes" => return Ok(true),
+            "n" | "no" => return Ok(false),
+            _ => label = input!("unrecognized answer, type “yes” or “no”: ")?,
+        }
     }
 }

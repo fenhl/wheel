@@ -216,3 +216,15 @@ impl SyncCommandOutputExt for std::process::Child {
         }
     }
 }
+
+impl SyncCommandOutputExt for std::process::ExitStatus {
+    type Ok = std::process::ExitStatus;
+
+    fn check(self, name: impl Into<Cow<'static, str>> + Clone) -> Result<Self::Ok> {
+        if self.success() {
+            Ok(self)
+        } else {
+            Err(Error::CommandExitStatus { name: name.into(), status: self })
+        }
+    }
+}

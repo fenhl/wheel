@@ -10,6 +10,7 @@ use {
     async_trait::async_trait,
     crate::{
         Error,
+        IoErrorContext,
         Result,
     },
 };
@@ -30,27 +31,17 @@ impl<T> ResultNeverExt<T> for Result<T, Infallible> {
     }
 }
 
-/// This trait is used by [`IoResultExt`] to convert [`io::Error`] to a generic error type.
-pub trait FromIoError {
-    /// Constructs a `Self` from the given I/O error and no annotation.
-    fn from_io_at_unknown(e: io::Error) -> Self;
-    /// Constructs a `Self` from the given I/O error and an annotation specifying where in the filesystem the error occurred.
-    fn from_io_at(e: io::Error, path: impl AsRef<Path>) -> Self;
-    /// Constructs a `Self` from the given I/O error and an annotation specifying that the error occurred when trying to execute the named command.
-    fn from_io_at_command(e: io::Error, name: impl Into<Cow<'static, str>>) -> Self;
-}
-
-/// Allows converting an [`io::Result`] to any [`Result`] type whose [`Err`] variant implements [`FromIoError`], optionally annotating it with the location where the error occurred.
+/// Allows converting an [`io::Result`] to a [`Result`], optionally annotating it with the location where the error occurred.
 pub trait IoResultExt {
     /// The [`Ok`] variant of the returned [`Result`] type.
     type Ok;
 
     /// Converts the [`Err`] variant of `self` without annotating it with a path or command context.
-    fn at_unknown<E: FromIoError>(self) -> Result<Self::Ok, E>;
+    fn at_unknown(self) -> Result<Self::Ok>;
     /// Converts the [`Err`] variant of `self` by annotating it with the given path.
-    fn at<E: FromIoError, P: AsRef<Path>>(self, path: P) -> Result<Self::Ok, E>;
+    fn at(self, path: impl AsRef<Path>) -> Result<Self::Ok>;
     /// Converts the [`Err`] variant of `self` by annotating it with the given command name.
-    fn at_command<E: FromIoError, S: Into<Cow<'static, str>>>(self, name: S) -> Result<Self::Ok, E>;
+    fn at_command(self, name: impl Into<Cow<'static, str>>) -> Result<Self::Ok>;
     /// Converts an [`Err`] with [`io::ErrorKind::AlreadyExists`] to `Ok(default())`.
     fn exist_ok(self) -> Self where Self::Ok: Default;
     /// Converts an [`Err`] with [`io::ErrorKind::NotFound`] to `Ok(default())`.
@@ -60,16 +51,16 @@ pub trait IoResultExt {
 impl<T> IoResultExt for io::Result<T> {
     type Ok = T;
 
-    fn at_unknown<E: FromIoError>(self) -> Result<T, E> {
-        self.map_err(E::from_io_at_unknown)
+    fn at_unknown(self) -> Result<T> {
+        self.map_err(|inner| Error::Io { inner, context: IoErrorContext::Unknown })
     }
 
-    fn at<E: FromIoError, P: AsRef<Path>>(self, path: P) -> Result<T, E> {
-        self.map_err(|e| E::from_io_at(e, path))
+    fn at(self, path: impl AsRef<Path>) -> Result<T> {
+        self.map_err(|inner| Error::Io { inner, context: IoErrorContext::Path(path.as_ref().to_owned()) })
     }
 
-    fn at_command<E: FromIoError, S: Into<Cow<'static, str>>>(self, name: S) -> Result<T, E> {
-        self.map_err(|e| E::from_io_at_command(e, name))
+    fn at_command(self, name: impl Into<Cow<'static, str>>) -> Result<T> {
+        self.map_err(|inner| Error::Io { inner, context: IoErrorContext::Command(name.into()) })
     }
 
     fn exist_ok(self) -> Self where T: Default {
@@ -82,6 +73,45 @@ impl<T> IoResultExt for io::Result<T> {
     fn missing_ok(self) -> Self where T: Default {
         match self {
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(T::default()),
+            _ => self,
+        }
+    }
+}
+
+impl<T> IoResultExt for Result<T> {
+    type Ok = T;
+
+    fn at_unknown(self) -> Result<T> {
+        match self {
+            Err(Error::Io { inner, .. }) => Err(Error::Io { inner, context: IoErrorContext::Unknown }),
+            _ => self,
+        }
+    }
+
+    fn at(self, path: impl AsRef<Path>) -> Result<T> {
+        match self {
+            Err(Error::Io { inner, .. }) => Err(Error::Io { inner, context: IoErrorContext::Path(path.as_ref().to_owned()) }),
+            _ => self,
+        }
+    }
+
+    fn at_command(self, name: impl Into<Cow<'static, str>>) -> Result<T> {
+        match self {
+            Err(Error::Io { inner, .. }) => Err(Error::Io { inner, context: IoErrorContext::Command(name.into()) }),
+            _ => self,
+        }
+    }
+
+    fn exist_ok(self) -> Self where T: Default {
+        match self {
+            Err(Error::Io { inner, .. }) if inner.kind() == io::ErrorKind::AlreadyExists => Ok(T::default()),
+            _ => self,
+        }
+    }
+
+    fn missing_ok(self) -> Self where T: Default {
+        match self {
+            Err(Error::Io { inner, .. }) if inner.kind() == io::ErrorKind::NotFound => Ok(T::default()),
             _ => self,
         }
     }

@@ -110,20 +110,6 @@ pub enum Error {
     },
 }
 
-impl traits::FromIoError for Error {
-    fn from_io_at_unknown(inner: io::Error) -> Self {
-        Self::Io { inner, context: IoErrorContext::Unknown }
-    }
-
-    fn from_io_at(inner: io::Error, path: impl AsRef<std::path::Path>) -> Self {
-        Self::Io { inner, context: IoErrorContext::Path(path.as_ref().to_owned()) }
-    }
-
-    fn from_io_at_command(inner: io::Error, name: impl Into<Cow<'static, str>>) -> Self {
-        Self::Io { inner, context: IoErrorContext::Command(name.into()) }
-    }
-}
-
 /// A shorthand for a result with defaults for both variants (unit and this crate's [`enum@Error`], respectively).
 pub type Result<T = (), E = Error> = std::result::Result<T, E>;
 

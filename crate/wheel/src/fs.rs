@@ -121,6 +121,12 @@ pub async fn create_dir_all(path: impl AsRef<Path>) -> Result {
     tokio::fs::create_dir_all(path).await.at(path)
 }
 
+/// A wrapper around [`tokio::fs::read`].
+pub async fn read(path: impl AsRef<Path>) -> Result<Vec<u8>> {
+    let path = path.as_ref();
+    tokio::fs::read(path).await.at(path)
+}
+
 /// A wrapper around [`tokio::fs::read_to_string`].
 pub async fn read_to_string(path: impl AsRef<Path>) -> Result<String> {
     let path = path.as_ref();

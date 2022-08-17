@@ -109,8 +109,26 @@ impl AsyncWrite for File {
     }
 }
 
+/// A wrapper around [`tokio::fs::create_dir`].
+pub async fn create_dir(path: impl AsRef<Path>) -> Result {
+    let path = path.as_ref();
+    tokio::fs::create_dir(path).await.at(path)
+}
+
 /// A wrapper around [`tokio::fs::create_dir_all`].
 pub async fn create_dir_all(path: impl AsRef<Path>) -> Result {
     let path = path.as_ref();
     tokio::fs::create_dir_all(path).await.at(path)
+}
+
+/// A wrapper around [`tokio::fs::read_to_string`].
+pub async fn read_to_string(path: impl AsRef<Path>) -> Result<String> {
+    let path = path.as_ref();
+    tokio::fs::read_to_string(path).await.at(path)
+}
+
+/// A wrapper around [`tokio::fs::write`].
+pub async fn write(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result {
+    let path = path.as_ref();
+    tokio::fs::write(path, contents).await.at(path)
 }

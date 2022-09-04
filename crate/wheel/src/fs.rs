@@ -140,6 +140,12 @@ pub async fn read_to_string(path: impl AsRef<Path>) -> Result<String> {
     tokio::fs::read_to_string(path).await.at(path)
 }
 
+/// A wrapper around [`tokio::fs::remove_file`].
+pub async fn remove_file(path: impl AsRef<Path>) -> Result {
+    let path = path.as_ref();
+    tokio::fs::remove_file(path).await.at(path)
+}
+
 /// A wrapper around [`tokio::fs::write`].
 pub async fn write(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result {
     let path = path.as_ref();

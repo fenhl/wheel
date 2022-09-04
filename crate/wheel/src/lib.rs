@@ -69,6 +69,8 @@ pub enum IoErrorContext {
     Unknown,
     /// The error occurred while working with the given path.
     Path(PathBuf),
+    /// The error occurred while working with the two given paths.
+    DoublePath(PathBuf, PathBuf),
     /// The error occurred while trying to run a command with the given name.
     Command(Cow<'static, str>),
 }
@@ -78,6 +80,7 @@ impl fmt::Display for IoErrorContext {
         match self {
             Self::Unknown => write!(f, "I/O error"),
             Self::Path(path) => write!(f, "I/O error at {}", path.display()),
+            Self::DoublePath(src, dst) => write!(f, "I/O error at {} and {}", src.display(), dst.display()),
             Self::Command(name) => write!(f, "in command `{name}`"),
         }
     }

@@ -40,6 +40,8 @@ pub trait IoResultExt {
     fn at_unknown(self) -> Result<Self::Ok>;
     /// Converts the [`Err`] variant of `self` by annotating it with the given path.
     fn at(self, path: impl AsRef<Path>) -> Result<Self::Ok>;
+    /// Converts the [`Err`] variant of `self` by annotating it with the two given paths.
+    fn at2(self, src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<Self::Ok>;
     /// Converts the [`Err`] variant of `self` by annotating it with the given command name.
     fn at_command(self, name: impl Into<Cow<'static, str>>) -> Result<Self::Ok>;
     /// Converts an [`Err`] with [`io::ErrorKind::AlreadyExists`] to `Ok(default())`.
@@ -57,6 +59,10 @@ impl<T> IoResultExt for io::Result<T> {
 
     fn at(self, path: impl AsRef<Path>) -> Result<T> {
         self.map_err(|inner| Error::Io { inner, context: IoErrorContext::Path(path.as_ref().to_owned()) })
+    }
+
+    fn at2(self, src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<T> {
+        self.map_err(|inner| Error::Io { inner, context: IoErrorContext::DoublePath(src.as_ref().to_owned(), dst.as_ref().to_owned()) })
     }
 
     fn at_command(self, name: impl Into<Cow<'static, str>>) -> Result<T> {
@@ -91,6 +97,13 @@ impl<T> IoResultExt for Result<T> {
     fn at(self, path: impl AsRef<Path>) -> Result<T> {
         match self {
             Err(Error::Io { inner, .. }) => Err(Error::Io { inner, context: IoErrorContext::Path(path.as_ref().to_owned()) }),
+            _ => self,
+        }
+    }
+
+    fn at2(self, src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<T> {
+        match self {
+            Err(Error::Io { inner, .. }) => Err(Error::Io { inner, context: IoErrorContext::DoublePath(src.as_ref().to_owned(), dst.as_ref().to_owned()) }),
             _ => self,
         }
     }

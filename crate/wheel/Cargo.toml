@@ -11,11 +11,9 @@ rocket-beta = ["dep_rocket_beta"]
 
 [dependencies]
 async-trait = "0.1"
+clap = "4" # used in proc macro
 itertools = "0.10"
 thiserror = "1"
-
-[dependencies.clap] # used in proc macro
-version = "3.1"
 
 [dependencies.dep_rocket_beta] # used in proc macro
 package = "rocket"

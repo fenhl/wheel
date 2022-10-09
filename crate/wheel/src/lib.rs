@@ -111,6 +111,14 @@ pub enum Error {
         /// The path or command where this error occurred, if known.
         context: IoErrorContext,
     },
+    #[cfg(feature = "reqwest")]
+    #[error("{inner}")]
+    ResponseStatus {
+        #[source]
+        inner: reqwest::Error,
+        headers: reqwest::header::HeaderMap,
+        text: reqwest::Result<String>,
+    },
 }
 
 /// A shorthand for a result with defaults for both variants (unit and this crate's [`enum@Error`], respectively).

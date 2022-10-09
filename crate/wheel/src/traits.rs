@@ -271,3 +271,26 @@ impl SyncCommandOutputExt for std::process::ExitStatus {
         }
     }
 }
+
+#[cfg(feature = "reqwest")]
+#[async_trait]
+/// Adds a `detailed_error_for_status` method which includes request headers and text in the error.
+pub trait ReqwestResponseExt: Sized {
+    /// Like `error_for_status` but includes request headers and text in the error.
+    async fn detailed_error_for_status(self) -> Result<Self>;
+}
+
+#[cfg(feature = "reqwest")]
+#[async_trait]
+impl ReqwestResponseExt for reqwest::Response {
+    async fn detailed_error_for_status(self) -> Result<Self> {
+        match self.error_for_status_ref() {
+            Ok(_) => Ok(self),
+            Err(inner) => Err(Error::ResponseStatus {
+                headers: self.headers().clone(),
+                text: self.text().await,
+                inner,
+            }),
+        }
+    }
+}

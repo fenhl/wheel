@@ -15,6 +15,7 @@ use {
     },
 };
 #[cfg(windows)] use std::os::windows::process::CommandExt as _;
+#[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))] use serde::de::DeserializeOwned;
 
 /// A convenience method for working with infallible results
 pub trait ResultNeverExt<T> {
@@ -274,10 +275,14 @@ impl SyncCommandOutputExt for std::process::ExitStatus {
 
 #[cfg(feature = "reqwest")]
 #[async_trait]
-/// Adds a `detailed_error_for_status` method which includes request headers and text in the error.
+/// Adds a `detailed_error_for_status` method which includes response headers and text in the error.
 pub trait ReqwestResponseExt: Sized {
-    /// Like `error_for_status` but includes request headers and text in the error.
+    /// Like `error_for_status` but includes response headers and text in the error.
     async fn detailed_error_for_status(self) -> Result<Self>;
+
+    #[cfg(all(feature = "serde", feature = "serde_json"))]
+    /// Like `json` but include response text in the error.
+    async fn json_with_text_in_error<T: DeserializeOwned>(self) -> Result<T>;
 }
 
 #[cfg(feature = "reqwest")]
@@ -292,5 +297,11 @@ impl ReqwestResponseExt for reqwest::Response {
                 inner,
             }),
         }
+    }
+
+    #[cfg(all(feature = "serde", feature = "serde_json"))]
+    async fn json_with_text_in_error<T: DeserializeOwned>(self) -> Result<T> {
+        let text = self.text().await?;
+        serde_json::from_str(&text).map_err(|inner| Error::ResponseJson { inner, text })
     }
 }

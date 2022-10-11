@@ -90,6 +90,7 @@ impl fmt::Display for IoErrorContext {
 #[allow(missing_docs)]
 #[derive(Debug, Error)]
 pub enum Error {
+    #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))] #[error(transparent)] Reqwest(#[from] reqwest::Error),
     /// A subprocess exited with a non-success status. Output information is available.
     #[error("command `{name}` exited with {}", .output.status)]
     CommandExit {
@@ -111,8 +112,15 @@ pub enum Error {
         /// The path or command where this error occurred, if known.
         context: IoErrorContext,
     },
+    #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))]
+    #[error("{inner}, body:\n\n{text}")]
+    ResponseJson {
+        #[source]
+        inner: serde_json::Error,
+        text: String,
+    },
     #[cfg(feature = "reqwest")]
-    #[error("{inner}")]
+    #[error("{inner}, body:\n\n{}", .text.as_ref().map(|text| text.clone()).unwrap_or_else(|e| e.to_string()))]
     ResponseStatus {
         #[source]
         inner: reqwest::Error,

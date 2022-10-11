@@ -25,6 +25,14 @@ version = "0.11"
 default-features = false
 optional = true
 
+[dependencies.serde]
+version = "1"
+optional = true
+
+[dependencies.serde_json]
+version = "1"
+optional = true
+
 [dependencies.tokio]
 version = "1"
 features = ["fs", "macros", "process", "rt-multi-thread"]

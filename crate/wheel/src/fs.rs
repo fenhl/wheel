@@ -16,6 +16,10 @@ use {
             Poll,
         },
     },
+    futures::stream::{
+        self,
+        Stream,
+    },
     tokio::{
         fs::OpenOptions,
         io::{
@@ -29,6 +33,7 @@ use {
         traits::IoResultExt as _,
     },
 };
+pub use tokio::fs::DirEntry;
 
 /// A wrapper around [`tokio::fs::File`].
 #[derive(Debug)]
@@ -138,6 +143,25 @@ pub async fn create_dir_all(path: impl AsRef<Path>) -> Result {
 pub async fn read(path: impl AsRef<Path>) -> Result<Vec<u8>> {
     let path = path.as_ref();
     tokio::fs::read(path).await.at(path)
+}
+
+#[cfg(feature = "futures")]
+/// A wrapper around [`tokio::fs::read_dir`].
+pub fn read_dir(path: impl AsRef<Path>) -> impl Stream<Item = Result<DirEntry>> {
+    enum State {
+        Init(PathBuf),
+        Continued(PathBuf, tokio::fs::ReadDir),
+    }
+
+    stream::try_unfold(State::Init(path.as_ref().to_owned()), |state| async move {
+        Ok(match state {
+            State::Init(path) => {
+                let mut read_dir = tokio::fs::read_dir(&path).await.at(&path)?;
+                read_dir.next_entry().await.at(&path)?.map(|entry| (entry, State::Continued(path, read_dir)))
+            }
+            State::Continued(path, mut read_dir) => read_dir.next_entry().await.at(&path)?.map(|entry| (entry, State::Continued(path, read_dir))),
+        })
+    })
 }
 
 /// A wrapper around [`tokio::fs::read_to_string`].

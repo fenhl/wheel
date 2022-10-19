@@ -109,6 +109,12 @@ impl AsyncWrite for File {
     }
 }
 
+/// A wrapper around [`tokio::fs::canonicalize`].
+pub async fn canonicalize(path: impl AsRef<Path>) -> Result<PathBuf> {
+    let path = path.as_ref();
+    tokio::fs::canonicalize(path).await.at(path)
+}
+
 /// A wrapper around [`tokio::fs::copy`].
 pub async fn copy(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<u64> {
     let from = from.as_ref();

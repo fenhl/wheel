@@ -146,6 +146,18 @@ pub async fn read_to_string(path: impl AsRef<Path>) -> Result<String> {
     tokio::fs::read_to_string(path).await.at(path)
 }
 
+/// A wrapper around [`tokio::fs::remove_dir`].
+pub async fn remove_dir(path: impl AsRef<Path>) -> Result {
+    let path = path.as_ref();
+    tokio::fs::remove_dir(path).await.at(path)
+}
+
+/// A wrapper around [`tokio::fs::remove_dir_all`].
+pub async fn remove_dir_all(path: impl AsRef<Path>) -> Result {
+    let path = path.as_ref();
+    tokio::fs::remove_dir_all(path).await.at(path)
+}
+
 /// A wrapper around [`tokio::fs::remove_file`].
 pub async fn remove_file(path: impl AsRef<Path>) -> Result {
     let path = path.as_ref();
@@ -153,7 +165,7 @@ pub async fn remove_file(path: impl AsRef<Path>) -> Result {
 }
 
 /// A wrapper around [`tokio::fs::rename`].
-pub async fn rename(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
+pub async fn rename(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result {
     let from = from.as_ref();
     let to = to.as_ref();
     tokio::fs::rename(from, to).await.at2(from, to)

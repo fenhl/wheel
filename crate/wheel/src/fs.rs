@@ -147,7 +147,7 @@ pub async fn read(path: impl AsRef<Path>) -> Result<Vec<u8>> {
 
 #[cfg(feature = "futures")]
 /// A wrapper around [`tokio::fs::read_dir`].
-pub fn read_dir(path: impl AsRef<Path>) -> impl Stream<Item = Result<DirEntry>> {
+pub fn read_dir(path: impl AsRef<Path>) -> impl Stream<Item = Result<DirEntry>> + Send {
     enum State {
         Init(PathBuf),
         Continued(PathBuf, tokio::fs::ReadDir),

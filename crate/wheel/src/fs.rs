@@ -152,6 +152,13 @@ pub async fn remove_file(path: impl AsRef<Path>) -> Result {
     tokio::fs::remove_file(path).await.at(path)
 }
 
+/// A wrapper around [`tokio::fs::rename`].
+pub async fn rename(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<()> {
+    let from = from.as_ref();
+    let to = to.as_ref();
+    tokio::fs::rename(from, to).await.at2(from, to)
+}
+
 /// A wrapper around [`tokio::fs::write`].
 pub async fn write(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result {
     let path = path.as_ref();

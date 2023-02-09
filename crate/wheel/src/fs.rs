@@ -74,6 +74,16 @@ impl File {
     pub async fn sync_all(&self) -> Result {
         self.inner.sync_all().await.at(&self.path)
     }
+
+    /// Returns the underlying [`tokio::fs::File`].
+    pub fn into_inner(self) -> tokio::fs::File {
+        self.inner
+    }
+
+    /// A wrapper around [`tokio::fs::File::into_std`].
+    pub async fn into_std(self) -> std::fs::File {
+        self.inner.into_std().await
+    }
 }
 
 impl AsyncRead for File {

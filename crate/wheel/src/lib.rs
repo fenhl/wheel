@@ -112,6 +112,14 @@ pub enum Error {
         /// The path or command where this error occurred, if known.
         context: IoErrorContext,
     },
+    #[cfg(all(feature = "serde", feature = "serde_json"))]
+    #[error("{context}: {inner}")]
+    Json {
+        #[source]
+        inner: serde_json::Error,
+        /// The path or command where this error occurred, if known.
+        context: IoErrorContext,
+    },
     #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))]
     #[error("{inner}, body:\n\n{text}")]
     ResponseJson {

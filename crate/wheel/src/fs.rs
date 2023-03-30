@@ -34,6 +34,7 @@ use {
     },
 };
 pub use tokio::fs::DirEntry;
+#[cfg(all(feature = "serde", feature = "serde_json"))] use serde::Deserialize;
 
 /// A wrapper around [`tokio::fs::File`].
 #[derive(Debug)]
@@ -172,6 +173,14 @@ pub fn read_dir(path: impl AsRef<Path>) -> impl Stream<Item = Result<DirEntry>> 
             State::Continued(path, mut read_dir) => read_dir.next_entry().await.at(&path)?.map(|entry| (entry, State::Continued(path, read_dir))),
         })
     })
+}
+
+#[cfg(all(feature = "serde", feature = "serde_json"))]
+/// A convenience method for reading and deserializing a JSON file. Loads the contents of the file into memory during deserializaton.
+pub async fn read_json<T: for<'de> Deserialize<'de>>(path: impl AsRef<Path>) -> Result<T> {
+    let path = path.as_ref();
+    let buf = tokio::fs::read(path).await.at(path)?;
+    serde_json::from_slice(&buf).at(path)
 }
 
 /// A wrapper around [`tokio::fs::read_to_string`].

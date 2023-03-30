@@ -131,6 +131,30 @@ impl<T> IoResultExt for Result<T> {
     }
 }
 
+#[cfg(all(feature = "serde", feature = "serde_json"))]
+impl<T> IoResultExt for serde_json::Result<T> {
+    type Ok = T;
+
+    fn at_unknown(self) -> Result<T> {
+        self.map_err(|inner| Error::Json { inner, context: IoErrorContext::Unknown })
+    }
+
+    fn at(self, path: impl AsRef<Path>) -> Result<T> {
+        self.map_err(|inner| Error::Json { inner, context: IoErrorContext::Path(path.as_ref().to_owned()) })
+    }
+
+    fn at2(self, src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<T> {
+        self.map_err(|inner| Error::Json { inner, context: IoErrorContext::DoublePath(src.as_ref().to_owned(), dst.as_ref().to_owned()) })
+    }
+
+    fn at_command(self, name: impl Into<Cow<'static, str>>) -> Result<T> {
+        self.map_err(|inner| Error::Json { inner, context: IoErrorContext::Command(name.into()) })
+    }
+
+    fn exist_ok(self) -> Self where T: Default { self }
+    fn missing_ok(self) -> Self where T: Default { self }
+}
+
 #[cfg_attr(feature = "tokio", doc = "Extension methods for [`tokio::process::Command`] and [`std::process::Command`]")]
 #[cfg_attr(not(feature = "tokio"), doc = "Extension methods for [`std::process::Command`]")]
 pub trait CommandExt {

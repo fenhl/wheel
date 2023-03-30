@@ -11,20 +11,7 @@ use {
         quote_spanned,
     },
     syn::{
-        AttributeArgs,
-        Data,
-        DataEnum,
-        DeriveInput,
-        Fields,
-        FieldsUnnamed,
-        FnArg,
-        GenericArgument,
-        ItemFn,
-        Meta,
-        NestedMeta,
-        PathArguments,
-        Type,
-        parse_macro_input,
+        *,
         spanned::Spanned as _,
     },
 };
@@ -38,7 +25,7 @@ pub fn from_arc(input: TokenStream) -> TokenStream {
     let ty = input.ident;
     let derives = match input.data {
         Data::Enum(DataEnum { variants, .. }) => variants.iter()
-            .filter(|variant| variant.attrs.iter().any(|attr| attr.path.get_ident().map_or(false, |ident| ident == "from_arc")))
+            .filter(|variant| variant.attrs.iter().any(|attr| attr.path().get_ident().map_or(false, |ident| ident == "from_arc")))
             .map(|variant| {
                 let variant_name = &variant.ident;
                 let arc_ty = match variant.fields {
@@ -156,43 +143,46 @@ pub fn lib(_: TokenStream, item: TokenStream) -> TokenStream {
 /// The `rocket` parameter can also be combined with one of the others, e.g. `#[wheel::main(debug, rocket)]`.
 #[proc_macro_attribute]
 pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(args as AttributeArgs);
     let mut exit_trait = None;
     let mut verbose_arg = false;
     let mut use_rocket = false;
-    for arg in args {
-        if let NestedMeta::Meta(Meta::Path(ref path)) = arg {
-            if let Some(ident) = path.get_ident() {
-                match &*ident.to_string() {
-                    "custom_exit" => if exit_trait.replace(quote!(::wheel::CustomExit)).is_some() {
-                        return quote_spanned! {arg.span()=>
-                            compile_error!("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
-                        }.into()
-                    },
-                    "debug" => if exit_trait.replace(quote!(::wheel::DebugMainOutput)).is_some() {
-                        return quote_spanned! {arg.span()=>
-                            compile_error!("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
-                        }.into()
-                    },
-                    "rocket" => use_rocket = true,
-                    "verbose_debug" => if exit_trait.replace(quote!(::wheel::VerboseDebugMainOutput)).is_some() {
-                        return quote_spanned! {arg.span()=>
-                            compile_error!("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
-                        }.into()
-                    } else {
-                        verbose_arg = true;
-                    },
-                    _ => return quote_spanned! {arg.span()=>
-                        compile_error!("unexpected wheel::main attribute argument");
-                    }.into(),
-                }
-                continue
+    let parser = syn::meta::parser(|arg| {
+        if arg.path.is_ident("custom_exit") {
+            if !arg.input.is_empty() {
+                return Err(arg.error("`#[wheel::main(custom_exit)]` does not take arguments"))
             }
+            if exit_trait.replace(quote!(::wheel::CustomExit)).is_some() {
+                return Err(arg.error("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive"))
+            }
+        } else if arg.path.is_ident("debug") {
+            if !arg.input.is_empty() {
+                return Err(arg.error("`#[wheel::main(debug)]` does not take arguments"))
+            }
+            if exit_trait.replace(quote!(::wheel::DebugMainOutput)).is_some() {
+                return Err(arg.error("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive"))
+            }
+        } else if arg.path.is_ident("rocket") {
+            if !arg.input.is_empty() {
+                return Err(arg.error("`#[wheel::main(rocket)]` does not take arguments"))
+            }
+            if use_rocket {
+                return Err(arg.error("`#[wheel::main(rocket)]` specified multiple times"))
+            }
+            use_rocket = true;
+        } else if arg.path.is_ident("verbose_debug") {
+            if !arg.input.is_empty() {
+                return Err(arg.error("`#[wheel::main(verbose_debug)]` does not take arguments"))
+            }
+            if exit_trait.replace(quote!(::wheel::VerboseDebugMainOutput)).is_some() {
+                return Err(arg.error("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive"))
+            }
+            verbose_arg = true;
+        } else {
+            return Err(arg.error("unexpected wheel::main attribute argument"))
         }
-        return quote_spanned! {arg.span()=>
-            compile_error!("unexpected wheel::main attribute argument");
-        }.into()
-    }
+        Ok(())
+    });
+    parse_macro_input!(args with parser);
     let exit_trait = exit_trait.unwrap_or(quote!(::wheel::MainOutput));
     let main_fn = parse_macro_input!(item as ItemFn);
     let asyncness = &main_fn.sig.asyncness;

@@ -44,4 +44,4 @@ optional = true
 
 [dependencies.wheel-derive]
 path = "../wheel-derive"
-version = "=0.9.1"
+version = "=0.9.2"

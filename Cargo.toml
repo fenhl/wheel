@@ -4,6 +4,6 @@ default-members = ["crate/wheel"]
 resolver = "2"
 
 [workspace.package]
-version = "0.9.1"
+version = "0.9.2"
 authors = ["Fenhl <fenhl@fenhl.net>"]
 edition = "2021"

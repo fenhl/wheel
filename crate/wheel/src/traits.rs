@@ -329,3 +329,69 @@ impl ReqwestResponseExt for reqwest::Response {
         serde_json::from_str(&text).map_err(|inner| Error::ResponseJson { inner, text })
     }
 }
+
+/// A heuristic for whether an error is a network error outside of our control that might be fixed by retrying the operation.
+pub trait IsNetworkError {
+    /// A heuristic for whether an error is a network error outside of our control that might be fixed by retrying the operation.
+    fn is_network_error(&self) -> bool;
+}
+
+impl IsNetworkError for Error {
+    fn is_network_error(&self) -> bool {
+        match self {
+            Self::Io { inner, .. } => inner.is_network_error(),
+            #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))] Self::Reqwest(e) => e.is_network_error(),
+            #[cfg(feature = "reqwest")] Self::ResponseStatus { inner, .. } => inner.is_network_error(),
+            _ => false,
+        }
+    }
+}
+
+impl IsNetworkError for io::Error {
+    fn is_network_error(&self) -> bool {
+        //TODO io::ErrorKind::NetworkUnreachable should also be considered here, as it can occur during a server reboot, but it is currently unstable, making it impossible to match against. See https://github.com/rust-lang/rust/issues/86442
+        matches!(self.kind(), io::ErrorKind::ConnectionAborted | io::ErrorKind::ConnectionRefused | io::ErrorKind::ConnectionReset | io::ErrorKind::TimedOut | io::ErrorKind::UnexpectedEof)
+    }
+}
+
+#[cfg(feature = "async-proto")]
+impl IsNetworkError for async_proto::ReadError {
+    fn is_network_error(&self) -> bool {
+        match self {
+            Self::EndOfStream => true,
+            Self::Io(e) => e.is_network_error(),
+            #[cfg(feature = "tungstenite")] Self::Tungstenite(e) => e.is_network_error(),
+            _ => false,
+        }
+    }
+}
+
+#[cfg(feature = "async-proto")]
+impl IsNetworkError for async_proto::WriteError {
+    fn is_network_error(&self) -> bool {
+        match self {
+            Self::Io(e) => e.is_network_error(),
+            #[cfg(feature = "tungstenite")] Self::Tungstenite(e) => e.is_network_error(),
+            _ => false,
+        }
+    }
+}
+
+#[cfg(feature = "reqwest")]
+impl IsNetworkError for reqwest::Error {
+    fn is_network_error(&self) -> bool {
+        self.is_request() || self.is_connect() || self.is_timeout() || self.status().map_or(false, |status| status.is_server_error())
+    }
+}
+
+#[cfg(feature = "tungstenite")]
+impl IsNetworkError for tungstenite::Error {
+    fn is_network_error(&self) -> bool {
+        match self {
+            Self::Http(resp) => resp.status() == http::StatusCode::BAD_GATEWAY,
+            Self::Io(e) => e.is_network_error(),
+            Self::Protocol(tungstenite::error::ProtocolError::ResetWithoutClosingHandshake) => true,
+            _ => false,
+        }
+    }
+}

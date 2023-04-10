@@ -8,6 +8,7 @@ description = "Rust boilerplate. Reinventing the wheel so you don't have to."
 [features]
 default = ["futures", "tokio"]
 rocket-beta = ["dep_rocket_beta"]
+rocket-master = ["dep_rocket_master"]
 tungstenite = ["async-proto?/tungstenite", "dep:tungstenite", "http"]
 
 [dependencies]
@@ -23,6 +24,12 @@ optional = true
 [dependencies.dep_rocket_beta] # used in proc macro
 package = "rocket"
 version = "0.5.0-rc.3"
+optional = true
+
+[dependencies.dep_rocket_master] # used in proc macro
+package = "rocket"
+git = "https://github.com/SergioBenitez/Rocket"
+branch = "master"
 optional = true
 
 [dependencies.futures]
@@ -57,4 +64,4 @@ optional = true
 
 [dependencies.wheel-derive]
 path = "../wheel-derive"
-version = "=0.9.3"
+version = "=0.9.4"

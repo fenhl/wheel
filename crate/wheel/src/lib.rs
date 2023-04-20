@@ -144,97 +144,40 @@ pub type Result<T = (), E = Error> = std::result::Result<T, E>;
 /// Members of this trait can be returned from a main function annotated with [`main`].
 pub trait MainOutput {
     /// Exits from the program using this value, displaying it and the given command name (usually `CARGO_PKG_NAME`) in case of an error.
-    fn exit(self, cmd_name: &'static str) -> !;
+    fn exit(self, cmd_name: &'static str, debug: bool) -> !;
 }
 
 impl MainOutput for Never {
-    fn exit(self, _: &'static str) -> ! {
+    fn exit(self, _: &'static str, _: bool) -> ! {
         match self {}
     }
 }
 
 impl MainOutput for () {
-    fn exit(self, _: &'static str) -> ! {
+    fn exit(self, _: &'static str, _: bool) -> ! {
         std::process::exit(0)
     }
 }
 
 impl MainOutput for bool {
-    fn exit(self, _: &'static str) -> ! {
+    fn exit(self, _: &'static str, _: bool) -> ! {
         std::process::exit(if self { 0 } else { 1 })
     }
 }
 
 impl MainOutput for i32 {
-    fn exit(self, _: &'static str) -> ! {
+    fn exit(self, _: &'static str, _: bool) -> ! {
         std::process::exit(self)
     }
 }
 
-impl<T: MainOutput, E: fmt::Display> MainOutput for Result<T, E> {
-    fn exit(self, cmd_name: &'static str) -> ! {
+impl<T: MainOutput, E: fmt::Debug + fmt::Display> MainOutput for Result<T, E> {
+    fn exit(self, cmd_name: &'static str, debug: bool) -> ! {
         match self {
-            Ok(x) => x.exit(cmd_name),
+            Ok(x) => x.exit(cmd_name, debug),
             Err(e) => {
                 eprintln!("{cmd_name}: {e}");
-                std::process::exit(1)
-            }
-        }
-    }
-}
-
-#[doc(hidden)] pub trait DebugMainOutput {
-    fn exit(self, cmd_name: &'static str) -> !;
-}
-
-impl DebugMainOutput for Never {
-    fn exit(self, _: &'static str) -> ! {
-        match self {}
-    }
-}
-
-impl DebugMainOutput for () {
-    fn exit(self, _: &'static str) -> ! {
-        std::process::exit(0)
-    }
-}
-
-impl<T: MainOutput, E: fmt::Debug + fmt::Display> DebugMainOutput for Result<T, E> {
-    fn exit(self, cmd_name: &'static str) -> ! {
-        match self {
-            Ok(x) => x.exit(cmd_name),
-            Err(e) => {
-                eprintln!("{cmd_name}: {e}");
-                eprintln!("debug info: {e:?}");
-                std::process::exit(1)
-            }
-        }
-    }
-}
-
-#[doc(hidden)] pub trait VerboseDebugMainOutput {
-    fn exit(self, cmd_name: &'static str, verbose: bool) -> !;
-}
-
-impl VerboseDebugMainOutput for Never {
-    fn exit(self, _: &'static str, _: bool) -> ! {
-        match self {}
-    }
-}
-
-impl VerboseDebugMainOutput for () {
-    fn exit(self, _: &'static str, _: bool) -> ! {
-        std::process::exit(0)
-    }
-}
-
-impl<T: MainOutput, E: fmt::Debug + fmt::Display> VerboseDebugMainOutput for Result<T, E> {
-    fn exit(self, cmd_name: &'static str, verbose: bool) -> ! {
-        match self {
-            Ok(x) => x.exit(cmd_name),
-            Err(e) => {
-                eprintln!("{cmd_name}: {e}");
-                if verbose {
+                if debug {
                     eprintln!("debug info: {e:?}");
                 }
                 std::process::exit(1)

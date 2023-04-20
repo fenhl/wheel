@@ -159,6 +159,12 @@ impl MainOutput for () {
     }
 }
 
+impl MainOutput for bool {
+    fn exit(self, _: &'static str) -> ! {
+        std::process::exit(if self { 0 } else { 1 })
+    }
+}
+
 impl MainOutput for i32 {
     fn exit(self, _: &'static str) -> ! {
         std::process::exit(self)

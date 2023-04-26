@@ -147,6 +147,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args with Punctuated::<Meta, Token![,]>::parse_terminated);
     let mut exit_trait = None;
     let mut debug = Some(false);
+    let mut debug_arg = quote!(, debug);
     let mut use_rocket = false;
     for arg in args {
         if arg.path().is_ident("custom_exit") {
@@ -158,6 +159,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
                     compile_error!("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
                 }.into()
             }
+            debug_arg = quote!();
         } else if arg.path().is_ident("debug") {
             if let Err(e) = arg.require_path_only() {
                 return e.into_compile_error().into()
@@ -250,7 +252,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
             #parse_args
             let ret_val = main_inner(#args)#awaitness;
-            #exit_trait::exit(ret_val, env!("CARGO_PKG_NAME"), debug)
+            #exit_trait::exit(ret_val, env!("CARGO_PKG_NAME") #debug_arg)
         }
     })
 }

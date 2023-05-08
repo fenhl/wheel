@@ -33,7 +33,13 @@ use {
         traits::IoResultExt as _,
     },
 };
-pub use tokio::fs::DirEntry;
+pub use {
+    std::fs::{
+        Metadata,
+        Permissions,
+    },
+    tokio::fs::DirEntry,
+};
 #[cfg(all(feature = "serde", feature = "serde_json"))] use serde::Deserialize;
 
 /// A wrapper around [`tokio::fs::File`].
@@ -150,6 +156,18 @@ pub async fn create_dir_all(path: impl AsRef<Path>) -> Result {
     tokio::fs::create_dir_all(path).await.at(path)
 }
 
+/// A wrapper around [`tokio::fs::try_exists`].
+pub async fn exists(path: impl AsRef<Path>) -> Result<bool> {
+    let path = path.as_ref();
+    tokio::fs::try_exists(path).await.at(path)
+}
+
+/// A wrapper around [`tokio::fs::metadata`].
+pub async fn metadata(path: impl AsRef<Path>) -> Result<Metadata> {
+    let path = path.as_ref();
+    tokio::fs::metadata(path).await.at(path)
+}
+
 /// A wrapper around [`tokio::fs::read`].
 pub async fn read(path: impl AsRef<Path>) -> Result<Vec<u8>> {
     let path = path.as_ref();
@@ -183,6 +201,12 @@ pub async fn read_json<T: for<'de> Deserialize<'de>>(path: impl AsRef<Path>) -> 
     serde_json::from_slice(&buf).at(path)
 }
 
+/// A wrapper around [`tokio::fs::read_link`].
+pub async fn read_link(path: impl AsRef<Path>) -> Result<PathBuf> {
+    let path = path.as_ref();
+    tokio::fs::read_link(path).await.at(path)
+}
+
 /// A wrapper around [`tokio::fs::read_to_string`].
 pub async fn read_to_string(path: impl AsRef<Path>) -> Result<String> {
     let path = path.as_ref();
@@ -212,6 +236,42 @@ pub async fn rename(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result {
     let from = from.as_ref();
     let to = to.as_ref();
     tokio::fs::rename(from, to).await.at2(from, to)
+}
+
+/// A wrapper around [`tokio::fs::set_permissions`].
+pub async fn set_permissions(path: impl AsRef<Path>, perm: Permissions) -> Result {
+    let path = path.as_ref();
+    tokio::fs::set_permissions(path, perm).await.at(path)
+}
+
+#[cfg(unix)]
+/// A wrapper around [`tokio::fs::symlink`].
+pub async fn symlink(original: impl AsRef<Path>, link: impl AsRef<Path>) -> Result {
+    let original = original.as_ref();
+    let link = link.as_ref();
+    tokio::fs::symlink(original, link).await.at2(original, link)
+}
+
+#[cfg(windows)]
+/// A wrapper around [`tokio::fs::symlink_dir`].
+pub async fn symlink_dir(original: impl AsRef<Path>, link: impl AsRef<Path>) -> Result {
+    let original = original.as_ref();
+    let link = link.as_ref();
+    tokio::fs::symlink_dir(original, link).await.at2(original, link)
+}
+
+#[cfg(windows)]
+/// A wrapper around [`tokio::fs::symlink_file`].
+pub async fn symlink_file(original: impl AsRef<Path>, link: impl AsRef<Path>) -> Result {
+    let original = original.as_ref();
+    let link = link.as_ref();
+    tokio::fs::symlink_file(original, link).await.at2(original, link)
+}
+
+/// A wrapper around [`tokio::fs::symlink_metadata`].
+pub async fn symlink_metadata(path: impl AsRef<Path>) -> Result<Metadata> {
+    let path = path.as_ref();
+    tokio::fs::symlink_metadata(path).await.at(path)
 }
 
 /// A wrapper around [`tokio::fs::write`].

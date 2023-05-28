@@ -59,7 +59,7 @@ features = ["fs", "macros", "process", "rt-multi-thread"]
 optional = true
 
 [dependencies.tungstenite]
-version = "0.18"
+version = "0.19"
 optional = true
 
 [dependencies.wheel-derive]

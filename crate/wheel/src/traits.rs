@@ -18,16 +18,41 @@ use {
 #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))] use serde::de::DeserializeOwned;
 
 /// A convenience method for working with infallible results
-pub trait ResultNeverExt<T> {
+pub trait ResultNeverExt {
+    /// The `Ok` type of the result.
+    type Ok;
+
     /// Returns the `Ok` variant of this result.
-    fn never_unwrap(self) -> T;
+    fn never_unwrap(self) -> Self::Ok;
 }
 
-impl<T> ResultNeverExt<T> for Result<T, Infallible> {
+impl<T> ResultNeverExt for Result<T, Infallible> {
+    type Ok = T;
+
     fn never_unwrap(self) -> T {
         match self {
             Ok(inner) => inner,
             Err(never) => match never {},
+        }
+    }
+}
+
+/// A convenience method for working with always-error results
+pub trait ResultNeverErrExt {
+    /// The `Err` type of the result.
+    type Err;
+
+    /// Returns the `Err` variant of this result.
+    fn never_unwrap_err(self) -> Self::Err;
+}
+
+impl<E> ResultNeverErrExt for Result<Infallible, E> {
+    type Err = E;
+
+    fn never_unwrap_err(self) -> E {
+        match self {
+            Ok(never) => match never {},
+            Err(inner) => inner,
         }
     }
 }

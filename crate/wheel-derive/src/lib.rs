@@ -137,16 +137,17 @@ pub fn lib(_: TokenStream, item: TokenStream) -> TokenStream {
 /// The attribute takes optional parameters to modify its behavior:
 ///
 /// * Specify as `#[wheel::main(custom_exit)]` to handle the `main` function's return value using the `wheel::CustomExit` trait instead of `wheel::MainOutput`, allowing to customize error handling behavior.
-/// * Specify as `#[wheel::main(debug)]` to display the `Debug` output of the value returned from `main` in addition to using `wheel::MainOutput`.
+/// * Specify as `#[wheel::main(debug)]` to display the `Debug` output of the value returned from `main`. This is accomplished by passing `true` to the `debug` parameter of `wheel::MainOutput::exit`. This is the default and may be deprecated in the future.
+/// * Specify as `#[wheel::main(no_debug)]` to suppress the `Debug` output of the value returned from `main`.
+/// * Specify as `#[wheel::main(verbose_debug)]` to only enable `debug` behavior if `wheel::IsVerbose::is_verbose` returns `true` for the parsed command-line arguments.
 /// * Specify as `#[wheel::main(rocket)]` to initialize the async runtime using [`rocket::main`](https://docs.rs/rocket/0.5.0-rc.1/rocket/attr.main.html) instead of [`tokio::main`](https://docs.rs/tokio/latest/tokio/attr.main.html). This requires the unstable `wheel` crate feature `rocket-beta`.
-/// * Specify as `#[wheel::main(verbose_debug)]` to enable `debug` behavior if `wheel::IsVerbose::is_verbose` returns `true` for the
 ///
-/// The `rocket` parameter can also be combined with one of the others, e.g. `#[wheel::main(debug, rocket)]`.
+/// The `rocket` parameter can also be combined with one of the others, e.g. `#[wheel::main(no_debug, rocket)]`.
 #[proc_macro_attribute]
 pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args with Punctuated::<Meta, Token![,]>::parse_terminated);
     let mut exit_trait = None;
-    let mut debug = Some(false);
+    let mut debug = Some(true);
     let mut debug_arg = true;
     let mut use_rocket = false;
     for arg in args {
@@ -156,20 +157,30 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             }
             if exit_trait.replace(quote!(::wheel::CustomExit)).is_some() {
                 return quote_spanned! {arg.span()=>
-                    compile_error!("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
+                    compile_error!("parameters `custom_exit`, `debug`, `no_debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
                 }.into()
             }
             debug_arg = false;
-        } else if arg.path().is_ident("debug") {
+        } else if arg.path().is_ident("debug") { //TODO deprecate
             if let Err(e) = arg.require_path_only() {
                 return e.into_compile_error().into()
             }
             if exit_trait.replace(quote!(::wheel::MainOutput)).is_some() {
                 return quote_spanned! {arg.span()=>
-                    compile_error!("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
+                    compile_error!("parameters `custom_exit`, `debug`, `no_debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
                 }.into()
             }
             debug = Some(true);
+        } else if arg.path().is_ident("no_debug") {
+            if let Err(e) = arg.require_path_only() {
+                return e.into_compile_error().into()
+            }
+            if exit_trait.replace(quote!(::wheel::MainOutput)).is_some() {
+                return quote_spanned! {arg.span()=>
+                    compile_error!("parameters `custom_exit`, `debug`, `no_debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
+                }.into()
+            }
+            debug = Some(false);
         } else if arg.path().is_ident("rocket") {
             if let Err(e) = arg.require_path_only() {
                 return e.into_compile_error().into()
@@ -186,7 +197,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             }
             if exit_trait.replace(quote!(::wheel::MainOutput)).is_some() {
                 return quote_spanned! {arg.span()=>
-                    compile_error!("parameters `custom_exit`, `debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
+                    compile_error!("parameters `custom_exit`, `debug`, `no_debug`, and `verbose_debug` on `#[wheel::main]` are mutually exclusive");
                 }.into()
             }
             debug = None;

@@ -9,7 +9,7 @@ description = "Rust boilerplate. Reinventing the wheel so you don't have to."
 default = ["futures", "tokio"]
 rocket-beta = ["dep_rocket_beta"]
 rocket-master = ["dep_rocket_master"]
-tungstenite = ["async-proto?/tungstenite", "dep:tungstenite", "http"]
+tungstenite = ["async-proto?/tungstenite", "dep:tungstenite"]
 
 [dependencies]
 async-trait = "0.1"
@@ -34,10 +34,6 @@ optional = true
 
 [dependencies.futures]
 version = "0.3"
-optional = true
-
-[dependencies.http]
-version = "0.2"
 optional = true
 
 [dependencies.reqwest]

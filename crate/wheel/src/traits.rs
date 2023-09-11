@@ -413,7 +413,7 @@ impl IsNetworkError for reqwest::Error {
 impl IsNetworkError for tungstenite::Error {
     fn is_network_error(&self) -> bool {
         match self {
-            Self::Http(resp) => resp.status() == http::StatusCode::BAD_GATEWAY,
+            Self::Http(resp) => resp.status().is_server_error(),
             Self::Io(e) => e.is_network_error(),
             Self::Protocol(tungstenite::error::ProtocolError::ResetWithoutClosingHandshake) => true,
             _ => false,

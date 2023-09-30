@@ -42,11 +42,11 @@ pub mod traits;
         };
 
         print!($($arg)*);
-        stdout().flush().and_then(|()| {
+        $crate::traits::IoResultExt::at_unknown(stdout().flush().and_then(|()| {
             let mut buf = String::default();
             stdin().read_line(&mut buf)?;
             Ok(buf)
-        })
+        }))
     }};
 }
 
@@ -59,7 +59,7 @@ pub mod traits;
         };
 
         print!($($arg)*);
-        stdout().flush()
+        $crate::traits::IoResultExt::at_unknown(stdout().flush())
     }};
 }
 
@@ -220,7 +220,7 @@ impl<T: CustomExit, E: CustomExit> CustomExit for Result<T, E> {
 }
 
 /// Repeatedly prompts the user until they input a valid choice.
-pub fn choose<T>(prompt: &str, mut choices: HashMap<String, T>) -> io::Result<T> {
+pub fn choose<T>(prompt: &str, mut choices: HashMap<String, T>) -> Result<T> {
     let mut label = input!("{prompt} [{}] ", choices.keys().join("/"))?;
     loop {
         if let Some(choice) = choices.remove(label.trim_end_matches(&['\r', '\n'][..])) {
@@ -231,7 +231,7 @@ pub fn choose<T>(prompt: &str, mut choices: HashMap<String, T>) -> io::Result<T>
 }
 
 /// Repeatedly prompts the user until they answer “yes” or “no”.
-pub fn yesno(prompt: &str) -> io::Result<bool> {
+pub fn yesno(prompt: &str) -> Result<bool> {
     let mut label = input!("{prompt} [y/n] ")?;
     loop {
         match &*label.trim_end_matches(&['\r', '\n'][..]).to_ascii_lowercase() {

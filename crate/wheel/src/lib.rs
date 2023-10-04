@@ -27,6 +27,7 @@ pub use wheel_derive::{
 #[doc(hidden)] pub use clap;
 #[cfg(feature = "rocket-beta")] #[doc(hidden)] pub use dep_rocket_beta as rocket;
 #[cfg(feature = "rocket-master")] #[doc(hidden)] pub use dep_rocket_master as rocket;
+#[cfg(feature = "rocket-tungstenite-0-20")] #[doc(hidden)] pub use dep_rocket_tungstenite_0_20 as rocket;
 #[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;
 
 #[cfg(feature = "tokio")] pub mod fs;

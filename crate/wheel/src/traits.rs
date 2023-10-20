@@ -420,3 +420,38 @@ impl IsNetworkError for tungstenite::Error {
         }
     }
 }
+
+#[cfg(feature = "chrono")]
+/// Error type returned by [`LocalResultExt::single_ok`].
+#[derive(Debug, thiserror::Error)]
+pub enum TimeFromLocalError<T> {
+    /// Given local time representation is invalid. This may be caused by a positive timezone transition.
+    #[error("invalid timestamp")]
+    None,
+    /// Given local time representation has multiple results and thus ambiguous. This may be caused by a negative timezone transition.
+    #[error("ambiguous timestamp")]
+    Ambiguous([T; 2]),
+}
+
+#[cfg(feature = "chrono")]
+/// Allows converting a [`chrono::LocalResult<T>`] to a [`Result<T, TimeFromLocalError<T>>`].
+pub trait LocalResultExt {
+    /// The [`Ok`] variant of the returned [`Result`] type. Returned when the given local time representation has a single unique result.
+    type Ok;
+
+    /// Converts a [`chrono::LocalResult<T>`] to a [`Result<T, TimeFromLocalError<T>>`].
+    fn single_ok(self) -> Result<Self::Ok, TimeFromLocalError<Self::Ok>>;
+}
+
+#[cfg(feature = "chrono")]
+impl<T> LocalResultExt for chrono::LocalResult<T> {
+    type Ok = T;
+
+    fn single_ok(self) -> Result<T, TimeFromLocalError<T>> {
+        match self {
+            Self::None => Err(TimeFromLocalError::None),
+            Self::Single(value) => Ok(value),
+            Self::Ambiguous(value1, value2) => Err(TimeFromLocalError::Ambiguous([value1, value2])),
+        }
+    }
+}

@@ -7,8 +7,6 @@ description = "Rust boilerplate. Reinventing the wheel so you don't have to."
 
 [features]
 default = ["futures", "tokio"]
-rocket-beta = ["dep_rocket_beta"]
-rocket-master = ["dep_rocket_master"]
 tungstenite = ["async-proto?/tungstenite", "dep:tungstenite"]
 
 [dependencies]
@@ -26,17 +24,6 @@ version = "0.4"
 default-features = false
 optional = true
 
-[dependencies.dep_rocket_beta] # used in proc macro
-package = "rocket"
-version = "0.5.0-rc.3"
-optional = true
-
-[dependencies.dep_rocket_master] # used in proc macro
-package = "rocket"
-git = "https://github.com/SergioBenitez/Rocket"
-branch = "master"
-optional = true
-
 [dependencies.futures]
 version = "0.3"
 optional = true
@@ -44,6 +31,10 @@ optional = true
 [dependencies.reqwest]
 version = "0.11"
 default-features = false
+optional = true
+
+[dependencies.rocket] # used in proc macro
+version = "0.5"
 optional = true
 
 [dependencies.serde]

@@ -140,7 +140,7 @@ pub fn lib(_: TokenStream, item: TokenStream) -> TokenStream {
 /// * Specify as `#[wheel::main(debug)]` to display the `Debug` output of the value returned from `main`. This is accomplished by passing `true` to the `debug` parameter of `wheel::MainOutput::exit`. This is the default and may be deprecated in the future.
 /// * Specify as `#[wheel::main(no_debug)]` to suppress the `Debug` output of the value returned from `main`.
 /// * Specify as `#[wheel::main(verbose_debug)]` to only enable `debug` behavior if `wheel::IsVerbose::is_verbose` returns `true` for the parsed command-line arguments.
-/// * Specify as `#[wheel::main(rocket)]` to initialize the async runtime using [`rocket::main`](https://docs.rs/rocket/0.5.0-rc.1/rocket/attr.main.html) instead of [`tokio::main`](https://docs.rs/tokio/latest/tokio/attr.main.html). This requires the unstable `wheel` crate feature `rocket-beta`.
+/// * Specify as `#[wheel::main(rocket)]` to initialize the async runtime using [`rocket::main`](https://docs.rs/rocket/0.5.0/rocket/attr.main.html) instead of [`tokio::main`](https://docs.rs/tokio/latest/tokio/attr.main.html). This requires the `wheel` crate feature `rocket`.
 ///
 /// The `rocket` parameter can also be combined with one of the others, e.g. `#[wheel::main(no_debug, rocket)]`.
 #[proc_macro_attribute]

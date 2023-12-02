@@ -12,7 +12,7 @@ tungstenite = ["async-proto?/tungstenite", "dep:tungstenite"]
 [dependencies]
 async-trait = "0.1"
 clap = "4" # used in proc macro
-itertools = "0.11"
+itertools = "0.12"
 thiserror = "1"
 
 [dependencies.async-proto]
@@ -47,7 +47,7 @@ optional = true
 
 [dependencies.tokio]
 version = "1"
-features = ["fs", "macros", "process", "rt-multi-thread"]
+features = ["fs", "macros", "parking_lot", "process", "rt-multi-thread"]
 optional = true
 
 [dependencies.tungstenite]
@@ -56,4 +56,4 @@ optional = true
 
 [dependencies.wheel-derive]
 path = "../wheel-derive"
-version = "=0.13.0"
+version = "=0.13.1"

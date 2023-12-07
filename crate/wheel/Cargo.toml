@@ -16,7 +16,9 @@ itertools = "0.12"
 thiserror = "1"
 
 [dependencies.async-proto]
-version = "0.16"
+#version = "0.16"
+git = "https://github.com/fenhl/async-proto" #TODO release
+branch = "error-ctx"
 optional = true
 
 [dependencies.chrono]

@@ -382,10 +382,10 @@ impl IsNetworkError for io::Error {
 #[cfg(feature = "async-proto")]
 impl IsNetworkError for async_proto::ReadError {
     fn is_network_error(&self) -> bool {
-        match self {
-            Self::EndOfStream => true,
-            Self::Io(e) => e.is_network_error(),
-            #[cfg(feature = "tungstenite")] Self::Tungstenite(e) => e.is_network_error(),
+        match &self.kind {
+            async_proto::ReadErrorKind::EndOfStream => true,
+            async_proto::ReadErrorKind::Io(e) => e.is_network_error(),
+            #[cfg(feature = "tungstenite")] async_proto::ReadErrorKind::Tungstenite(e) => e.is_network_error(),
             _ => false,
         }
     }
@@ -394,9 +394,9 @@ impl IsNetworkError for async_proto::ReadError {
 #[cfg(feature = "async-proto")]
 impl IsNetworkError for async_proto::WriteError {
     fn is_network_error(&self) -> bool {
-        match self {
-            Self::Io(e) => e.is_network_error(),
-            #[cfg(feature = "tungstenite")] Self::Tungstenite(e) => e.is_network_error(),
+        match &self.kind {
+            async_proto::WriteErrorKind::Io(e) => e.is_network_error(),
+            #[cfg(feature = "tungstenite")] async_proto::WriteErrorKind::Tungstenite(e) => e.is_network_error(),
             _ => false,
         }
     }

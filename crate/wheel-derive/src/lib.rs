@@ -262,9 +262,9 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     TokenStream::from(quote! {
         #use_tokio
 
-        #asyncness fn main_inner(#arg) #ret #body
-
         #main_prefix fn main() {
+            #asyncness fn main_inner(#arg) #ret #body
+
             //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
             #parse_args
             #ignore_debug

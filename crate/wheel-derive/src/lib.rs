@@ -267,7 +267,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             quote! {
                 ::wheel::tokio::runtime::Builder::new_multi_thread()
                     .enable_all()
-                    .build.expect("failed to set up tokio runtime in wheel::main")
+                    .build().expect("failed to set up tokio runtime in wheel::main")
                     .block_on(main_inner(#args))
             }
         }

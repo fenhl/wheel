@@ -210,9 +210,6 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let exit_trait = exit_trait.unwrap_or(quote!(::wheel::MainOutput));
     let main_fn = parse_macro_input!(item as ItemFn);
     let asyncness = &main_fn.sig.asyncness;
-    let use_tokio = asyncness.as_ref().map(|_| if use_rocket { quote!(use ::wheel::rocket;) } else { quote!(use ::wheel::tokio;) });
-    let main_prefix = asyncness.as_ref().map(|async_keyword| if use_rocket { quote!(#[rocket::main] #async_keyword) } else { quote!(#[tokio::main] #async_keyword) });
-    let awaitness = asyncness.as_ref().map(|_| quote!(.await));
     let (arg, parse_args, args) = match main_fn.sig.inputs.iter().at_most_one() {
         Ok(Some(FnArg::Typed(arg))) => {
             let arg_ty = &arg.ty;
@@ -254,21 +251,38 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     };
     let ret = main_fn.sig.output;
     let body = main_fn.block;
+    let init_console_subscriber = {
+        #[cfg(tokio_unstable)] { quote!(::wheel::console_subscriber::init();) }
+        #[cfg(not(tokio_unstable))] { quote!() }
+    };
     let (ignore_debug, debug_arg) = if debug_arg {
         (quote!(), quote!(, debug))
     } else {
         (quote!(let _ = debug;), quote!())
     };
+    let call_main_inner = if asyncness.is_some() {
+        if use_rocket {
+            quote!(::wheel::rocket::async_main(main_inner(#args)))
+        } else {
+            quote! {
+                ::wheel::tokio::runtime::Builder::new_multi_thread()
+                    .enable_all()
+                    .build.expect("failed to set up tokio runtime in wheel::main")
+                    .block_on(main_inner(#args))
+            }
+        }
+    } else {
+        quote!(main_inner(#args))
+    };
     TokenStream::from(quote! {
-        #use_tokio
-
-        #main_prefix fn main() {
+        fn main() {
             #asyncness fn main_inner(#arg) #ret #body
 
             //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
+            #init_console_subscriber
             #parse_args
             #ignore_debug
-            let ret_val = main_inner(#args)#awaitness;
+            let ret_val = #call_main_inner;
             #exit_trait::exit(ret_val, env!("CARGO_PKG_NAME") #debug_arg)
         }
     })

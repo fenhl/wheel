@@ -55,8 +55,9 @@ optional = true
 path = "../wheel-derive"
 version = "=0.13.1"
 
-[target.'cfg(tokio_unstable)'.dependencies]
-console-subscriber = "0.2" # used in proc macro
+[target.'cfg(tokio_unstable)'.dependencies.console-subscriber] # used in proc macro
+version = "0.2"
+features = ["parking_lot"]
 
 [target.'cfg(tokio_unstable)'.dependencies.tokio]
 version = "1"

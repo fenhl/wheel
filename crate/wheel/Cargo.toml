@@ -47,11 +47,6 @@ optional = true
 version = "1"
 optional = true
 
-[dependencies.tokio]
-version = "1"
-features = ["fs", "macros", "parking_lot", "process", "rt-multi-thread"]
-optional = true
-
 [dependencies.tungstenite]
 version = "0.20"
 optional = true
@@ -62,3 +57,13 @@ version = "=0.13.1"
 
 [target.'cfg(tokio_unstable)'.dependencies]
 console-subscriber = "0.2" # used in proc macro
+
+[target.'cfg(tokio_unstable)'.dependencies.tokio]
+version = "1"
+features = ["fs", "macros", "parking_lot", "process", "rt-multi-thread", "tracing"]
+optional = true
+
+[target.'cfg(not(tokio_unstable))'.dependencies.tokio]
+version = "1"
+features = ["fs", "macros", "parking_lot", "process", "rt-multi-thread"]
+optional = true

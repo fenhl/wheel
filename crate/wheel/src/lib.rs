@@ -219,6 +219,16 @@ impl<T: CustomExit, E: CustomExit> CustomExit for Result<T, E> {
     }
 }
 
+/// Converts a [`reqwest::Error`] into an [`io::Error`] with an appropriate [`io::ErrorKind`].
+#[cfg(feature = "reqwest")]
+pub fn io_error_from_reqwest(e: reqwest::Error) -> io::Error {
+    io::Error::new(if e.is_timeout() {
+        io::ErrorKind::TimedOut
+    } else {
+        io::ErrorKind::Other //TODO use an approprriate error kind where possible
+    }, e)
+}
+
 /// Repeatedly prompts the user until they input a valid choice.
 pub fn choose<T>(prompt: &str, mut choices: HashMap<String, T>) -> Result<T> {
     let mut label = input!("{prompt} [{}] ", choices.keys().join("/"))?;

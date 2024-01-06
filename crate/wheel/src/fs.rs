@@ -6,6 +6,10 @@ use {
             self,
             IoSlice,
         },
+        ops::{
+            Deref,
+            DerefMut,
+        },
         path::{
             Path,
             PathBuf,
@@ -128,6 +132,20 @@ impl AsyncWrite for File {
 
     fn is_write_vectored(&self) -> bool {
         self.inner.is_write_vectored()
+    }
+}
+
+impl Deref for File {
+    type Target = tokio::fs::File;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl DerefMut for File {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 

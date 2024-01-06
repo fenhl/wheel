@@ -81,6 +81,11 @@ impl File {
         })
     }
 
+    /// A wrapper around [`tokio::fs::metadata`].
+    pub async fn metadata(&self) -> Result<Metadata> {
+        self.inner.metadata().await.at(&self.path)
+    }
+
     /// A wrapper around [`tokio::fs::File::sync_all`].
     pub async fn sync_all(&self) -> Result {
         self.inner.sync_all().await.at(&self.path)

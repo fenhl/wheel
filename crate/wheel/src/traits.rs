@@ -414,7 +414,13 @@ impl IsNetworkError for tungstenite::Error {
     fn is_network_error(&self) -> bool {
         match self {
             Self::Http(resp) => resp.status().is_server_error(),
-            Self::Io(e) => e.is_network_error(),
+            Self::Io(e) => {
+                // Tungstenite does not provide structured information about I/O errors, so we need to check the Display impl
+                let display = e.to_string();
+                display == "No such host is known. (os error 11001)"
+                || display == "failed to lookup address information: Temporary failure in name resolution"
+                || e.is_network_error()
+            }
             Self::Protocol(tungstenite::error::ProtocolError::ResetWithoutClosingHandshake) => true,
             _ => false,
         }

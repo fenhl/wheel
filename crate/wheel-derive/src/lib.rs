@@ -264,8 +264,10 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let ret = main_fn.sig.output;
     let body = main_fn.block;
     let init_console_subscriber = if use_console {
-        #[cfg(tokio_unstable)] { quote!(::wheel::console_subscriber::init();) }
-        #[cfg(not(tokio_unstable))] { return quote!(compile_error!("#[wheel::main(console)] requires cfg(tokio_unstable)");).into() }
+        quote! {
+            #[cfg(tokio_unstable)] { ::wheel::console_subscriber::init(); }
+            #[cfg(not(tokio_unstable))] { compile_error!("#[wheel::main(console)] requires cfg(tokio_unstable)"); }
+        }
     } else {
         quote!()
     };

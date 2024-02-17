@@ -22,6 +22,17 @@ pub use wheel_derive::{
     lib,
     main,
 };
+#[cfg(feature = "tokio")] use {
+    std::process::Stdio,
+    tokio::{
+        io::AsyncWriteExt as _,
+        process::Command,
+    },
+    crate::traits::{
+        AsyncCommandOutputExt as _,
+        IoResultExt as _,
+    },
+};
 
 // used in proc macro:
 #[doc(hidden)] pub use clap;
@@ -250,4 +261,21 @@ pub fn yesno(prompt: &str) -> Result<bool> {
             _ => label = input!("unrecognized answer, type “yes” or “no”: ")?,
         }
     }
+}
+
+#[cfg(feature = "tokio")]
+/// Report an error to `night`, my personal status monitor system.
+///
+/// Only works if called on mercredi as a user who has access to `nightd report` via sudo.
+pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
+    let mut cmd = Command::new("sudo");
+    cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg(path);
+    if extra.is_some() {
+        cmd.stdin(Stdio::piped());
+    }
+    let mut child = cmd.spawn().at_command("sudo -u fenhl /opt/night/bin/nightd report")?;
+    if let Some(extra) = extra {
+        child.stdin.take().expect("configured above").write_all(extra.as_ref()).await.at_command("sudo -u fenhl /opt/night/bin/nightd report")?;
+    }
+    child.check("sudo -u fenhl /opt/night/bin/nightd report").await
 }

@@ -59,10 +59,10 @@ features = ["parking_lot"]
 
 [target.'cfg(tokio_unstable)'.dependencies.tokio]
 version = "1"
-features = ["fs", "macros", "parking_lot", "process", "rt-multi-thread", "tracing"]
+features = ["fs", "io-util", "macros", "parking_lot", "process", "rt-multi-thread", "tracing"]
 optional = true
 
 [target.'cfg(not(tokio_unstable))'.dependencies.tokio]
 version = "1"
-features = ["fs", "macros", "parking_lot", "process", "rt-multi-thread"]
+features = ["fs", "io-util", "macros", "parking_lot", "process", "rt-multi-thread"]
 optional = true

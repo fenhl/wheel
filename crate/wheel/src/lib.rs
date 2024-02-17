@@ -9,11 +9,19 @@ use {
         collections::HashMap,
         convert::Infallible as Never,
         fmt,
-        io,
+        io::{
+            self,
+            prelude::*,
+        },
         path::PathBuf,
+        process::Stdio,
     },
     itertools::Itertools as _,
     thiserror::Error,
+    crate::traits::{
+        IoResultExt as _,
+        SyncCommandOutputExt as _,
+    },
 };
 pub use wheel_derive::{
     FromArc,
@@ -23,15 +31,11 @@ pub use wheel_derive::{
     main,
 };
 #[cfg(feature = "tokio")] use {
-    std::process::Stdio,
     tokio::{
         io::AsyncWriteExt as _,
         process::Command,
     },
-    crate::traits::{
-        AsyncCommandOutputExt as _,
-        IoResultExt as _,
-    },
+    crate::traits::AsyncCommandOutputExt as _,
 };
 
 // used in proc macro:
@@ -278,4 +282,20 @@ pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::proces
         child.stdin.take().expect("configured above").write_all(extra.as_ref()).await.at_command("sudo -u fenhl /opt/night/bin/nightd report")?;
     }
     child.check("sudo -u fenhl /opt/night/bin/nightd report").await
+}
+
+/// Report an error to `night`, my personal status monitor system.
+///
+/// Only works if called on mercredi as a user who has access to `nightd report` via sudo.
+pub fn night_report_sync(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
+    let mut cmd = std::process::Command::new("sudo");
+    cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg(path);
+    if extra.is_some() {
+        cmd.stdin(Stdio::piped());
+    }
+    let mut child = cmd.spawn().at_command("sudo -u fenhl /opt/night/bin/nightd report")?;
+    if let Some(extra) = extra {
+        child.stdin.take().expect("configured above").write_all(extra.as_ref()).at_command("sudo -u fenhl /opt/night/bin/nightd report")?;
+    }
+    child.check("sudo -u fenhl /opt/night/bin/nightd report")
 }

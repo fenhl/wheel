@@ -143,7 +143,7 @@ pub fn lib(_: TokenStream, item: TokenStream) -> TokenStream {
 /// * Specify as `#[wheel::main(rocket)]` to initialize the async runtime using [`rocket::main`](https://docs.rs/rocket/0.5.0/rocket/attr.main.html) instead of [`tokio::main`](https://docs.rs/tokio/latest/tokio/attr.main.html). This requires the `wheel` crate feature `rocket`.
 /// * Specify as `#[wheel::main(console = port)]`, where `port` is a [`u16`] literal, to initialize [`console-subscriber`](https://docs.rs/console-subscriber) for Tokio console. Requires `cfg(tokio_unstable)`.
 ///
-/// The `rocket` and `console` parameters can also be combined with each other and/or one of the others, e.g. `#[wheel::main(no_debug, rocket, console = 1234)]`.
+/// The `rocket` and `console` parameters can also be combined with each other and/or one of the others, e.g. `#[wheel::main(no_debug, rocket, console = 6669)]`.
 #[proc_macro_attribute]
 pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args with Punctuated::<Meta, Token![,]>::parse_terminated);

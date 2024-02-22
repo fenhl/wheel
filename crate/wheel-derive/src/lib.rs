@@ -141,7 +141,7 @@ pub fn lib(_: TokenStream, item: TokenStream) -> TokenStream {
 /// * Specify as `#[wheel::main(no_debug)]` to suppress the `Debug` output of the value returned from `main`.
 /// * Specify as `#[wheel::main(verbose_debug)]` to only enable `debug` behavior if `wheel::IsVerbose::is_verbose` returns `true` for the parsed command-line arguments.
 /// * Specify as `#[wheel::main(rocket)]` to initialize the async runtime using [`rocket::main`](https://docs.rs/rocket/0.5.0/rocket/attr.main.html) instead of [`tokio::main`](https://docs.rs/tokio/latest/tokio/attr.main.html). This requires the `wheel` crate feature `rocket`.
-/// * Specify as `#[wheel::main(console)]` to initialize [`console-subscriber`](https://docs.rs/console-subscriber) for Tokio console. Requires `cfg(tokio_unstable)`.
+/// * Specify as `#[wheel::main(console = port)]`, where `port` is a [`u16`] literal, to initialize [`console-subscriber`](https://docs.rs/console-subscriber) for Tokio console. Requires `cfg(tokio_unstable)`.
 ///
 /// The `rocket` and `console` parameters can also be combined with each other and/or one of the others, e.g. `#[wheel::main(no_debug, rocket, console)]`.
 #[proc_macro_attribute]
@@ -151,18 +151,27 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let mut debug = Some(true);
     let mut debug_arg = true;
     let mut use_rocket = false;
-    let mut use_console = false;
+    let mut console_port = None::<u16>;
     for arg in args {
         if arg.path().is_ident("console") {
-            if let Err(e) = arg.require_path_only() {
-                return e.into_compile_error().into()
+            match arg.require_name_value() {
+                Ok(MetaNameValue { value, .. }) => if let Expr::Lit(ExprLit { lit: Lit::Int(lit), .. }) = value {
+                    if console_port.is_some() {
+                        return quote_spanned! {arg.span()=>
+                            compile_error!("`#[wheel::main(console)]` specified multiple times");
+                        }.into()
+                    }
+                    match lit.base10_parse() {
+                        Ok(port) => console_port = Some(port),
+                        Err(e) => return e.into_compile_error().into(),
+                    }
+                } else {
+                    return quote_spanned! {value.span()=>
+                        compile_error!("console value must be a u16 literal (the port number)");
+                    }.into()
+                },
+                Err(e) => return e.into_compile_error().into(),
             }
-            if use_console {
-                return quote_spanned! {arg.span()=>
-                    compile_error!("`#[wheel::main(console)]` specified multiple times");
-                }.into()
-            }
-            use_console = true;
         } else if arg.path().is_ident("custom_exit") {
             if let Err(e) = arg.require_path_only() {
                 return e.into_compile_error().into()
@@ -263,9 +272,13 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     };
     let ret = main_fn.sig.output;
     let body = main_fn.block;
-    let init_console_subscriber = if use_console {
+    let init_console_subscriber = if let Some(port) = console_port {
         quote! {
-            #[cfg(tokio_unstable)] { ::wheel::console_subscriber::init(); }
+            #[cfg(tokio_unstable)] {
+                ::wheel::console_subscriber::ConsoleLayer::builder()
+                    .server_addr((::core::net::Ipv4Addr::LOCALHOST, #port))
+                    .init();
+            }
             #[cfg(not(tokio_unstable))] { compile_error!("#[wheel::main(console)] requires cfg(tokio_unstable)"); }
         }
     } else {

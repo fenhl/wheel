@@ -375,7 +375,7 @@ impl IsNetworkError for Error {
 impl IsNetworkError for io::Error {
     fn is_network_error(&self) -> bool {
         matches!(self.kind(), io::ErrorKind::ConnectionAborted | io::ErrorKind::ConnectionRefused | io::ErrorKind::ConnectionReset | io::ErrorKind::TimedOut | io::ErrorKind::UnexpectedEof)
-        || self.to_string() == "Network is unreachable" //TODO this should be a match on io::ErrorKind::NetworkUnreachable, but it is currently unstable, making it impossible to match against. See https://github.com/rust-lang/rust/issues/86442
+        || self.to_string() == "Network is unreachable (os error 101)" //TODO this should be a match on io::ErrorKind::NetworkUnreachable, but it is currently unstable, making it impossible to match against. See https://github.com/rust-lang/rust/issues/86442
     }
 }
 

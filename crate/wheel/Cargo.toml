@@ -16,7 +16,7 @@ itertools = "0.12"
 thiserror = "1"
 
 [dependencies.async-proto]
-version = "0.20"
+version = "0.21"
 optional = true
 
 [dependencies.chrono]

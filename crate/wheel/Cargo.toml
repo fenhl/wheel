@@ -7,6 +7,7 @@ description = "Rust boilerplate. Reinventing the wheel so you don't have to."
 
 [features]
 default = ["futures", "tokio"]
+racetime = ["dep:racetime", "reqwest", "tungstenite"]
 tungstenite = ["async-proto?/tungstenite", "dep:tungstenite"]
 
 [dependencies]
@@ -26,6 +27,10 @@ optional = true
 
 [dependencies.futures]
 version = "0.3"
+optional = true
+
+[dependencies.racetime]
+version = "0.21"
 optional = true
 
 [dependencies.reqwest]

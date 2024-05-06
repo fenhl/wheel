@@ -402,6 +402,29 @@ impl IsNetworkError for async_proto::WriteError {
     }
 }
 
+#[cfg(feature = "racetime")]
+impl IsNetworkError for racetime::Error {
+    fn is_network_error(&self) -> bool {
+        match self {
+            Self::Custom(_) => false, // can't dynamically downcast to IsNetworkError
+            Self::HeaderToStr(_) => false,
+            Self::InvalidHeaderValue(_) => false,
+            Self::Io(e) => e.is_network_error(),
+            Self::Json(_) => false,
+            Self::Task(_) => false,
+            Self::UrlParse(_) => false,
+            Self::EndOfStream => true,
+            Self::LocationCategory => false,
+            Self::LocationFormat => false,
+            Self::MissingLocationHeader => false,
+            Self::Reqwest(e) => e.is_network_error(),
+            Self::Server(_) => false,
+            Self::Tungstenite(e) => e.is_network_error(),
+            Self::UnexpectedMessageType(_) => false,
+        }
+    }
+}
+
 #[cfg(feature = "reqwest")]
 impl IsNetworkError for reqwest::Error {
     fn is_network_error(&self) -> bool {

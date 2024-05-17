@@ -15,7 +15,10 @@ use {
     },
 };
 #[cfg(windows)] use std::os::windows::process::CommandExt as _;
-#[cfg(feature = "chrono")] use chrono::prelude::*;
+#[cfg(feature = "chrono")] use {
+    std::fmt,
+    chrono::prelude::*,
+};
 #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))] use serde::de::DeserializeOwned;
 
 /// A convenience method for working with infallible results
@@ -453,15 +456,32 @@ impl IsNetworkError for tungstenite::Error {
 
 #[cfg(feature = "chrono")]
 /// Error type returned by [`LocalResultExt::single_ok`].
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum TimeFromLocalError<T> {
     /// Given local time representation is invalid. This may be caused by a positive timezone transition.
-    #[error("invalid timestamp")]
     None,
     /// Given local time representation has multiple results and thus ambiguous. This may be caused by a negative timezone transition.
-    #[error("ambiguous timestamp: could refer to {} or {} UTC", .0[0].with_timezone(&Utc).format("%Y-%m-%d %H:%M:%S"), .0[1].with_timezone(&Utc).format("%Y-%m-%d %H:%M:%S"))]
     Ambiguous([T; 2]),
 }
+
+#[cfg(feature = "chrono")]
+impl<Z: TimeZone> fmt::Display for TimeFromLocalError<DateTime<Z>>
+where Z::Offset: fmt::Display {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::None => write!(f, "invalid timestamp"),
+            Self::Ambiguous([first, second]) => write!(
+                f,
+                "ambiguous timestamp: could refer to {} or {} UTC",
+                first.with_timezone(&Utc).format("%Y-%m-%d %H:%M:%S"),
+                second.with_timezone(&Utc).format("%Y-%m-%d %H:%M:%S"),
+            ),
+        }
+    }
+}
+
+#[cfg(feature = "chrono")]
+impl<T: fmt::Debug> std::error::Error for TimeFromLocalError<T> where TimeFromLocalError<T>: fmt::Display {}
 
 #[cfg(feature = "chrono")]
 /// Allows converting a [`chrono::LocalResult<T>`] to a [`Result<T, TimeFromLocalError<T>>`].

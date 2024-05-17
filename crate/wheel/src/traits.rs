@@ -15,6 +15,7 @@ use {
     },
 };
 #[cfg(windows)] use std::os::windows::process::CommandExt as _;
+#[cfg(feature = "chrono")] use chrono::prelude::*;
 #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))] use serde::de::DeserializeOwned;
 
 /// A convenience method for working with infallible results
@@ -458,7 +459,7 @@ pub enum TimeFromLocalError<T> {
     #[error("invalid timestamp")]
     None,
     /// Given local time representation has multiple results and thus ambiguous. This may be caused by a negative timezone transition.
-    #[error("ambiguous timestamp")]
+    #[error("ambiguous timestamp: could refer to {} or {} UTC", .0[0].with_timezone(&Utc).format("%Y-%m-%d %H:%M:%S"), .0[1].with_timezone(&Utc).format("%Y-%m-%d %H:%M:%S"))]
     Ambiguous([T; 2]),
 }
 

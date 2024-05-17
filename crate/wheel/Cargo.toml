@@ -9,6 +9,7 @@ description = "Rust boilerplate. Reinventing the wheel so you don't have to."
 default = ["futures", "tokio"]
 racetime = ["dep:racetime", "reqwest", "tungstenite"]
 tungstenite = ["async-proto?/tungstenite", "dep:tungstenite"]
+rocket-util = ["dep:rocket-util"]
 
 [dependencies]
 async-proto = { version = "0.21", optional = true }
@@ -20,6 +21,7 @@ itertools = "0.12"
 racetime = { version = "0.21", optional = true }
 reqwest = { version = "0.12", default-features = false, optional = true }
 rocket = { version = "0.5", optional = true } # used in proc macro
+rocket-util = { git = "https://github.com/fenhl/rocket-util", branch = "main", optional = true }
 serde = { version = "1", optional = true }
 serde_json = { version = "1", optional = true }
 thiserror = "1"

@@ -105,6 +105,7 @@ impl fmt::Display for IoErrorContext {
 /// An error that can be returned from the [traits] in this crate.
 #[allow(missing_docs)]
 #[derive(Debug, Error)]
+#[cfg_attr(feature = "rocket-util", derive(rocket_util::Error))]
 pub enum Error {
     #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))] #[error(transparent)] Reqwest(#[from] reqwest::Error),
     /// A subprocess exited with a non-success status. Output information is available.

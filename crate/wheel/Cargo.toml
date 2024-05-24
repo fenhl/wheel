@@ -12,20 +12,20 @@ tungstenite = ["async-proto?/tungstenite", "dep:tungstenite"]
 rocket-util = ["dep:rocket-util"]
 
 [dependencies]
-async-proto = { version = "0.21", optional = true }
+async-proto = { version = "0.22", optional = true }
 async-trait = "0.1"
 chrono = { version = "0.4", default-features = false, features = ["alloc"], optional = true }
 clap = "4" # used in proc macro
 futures = { version = "0.3", optional = true }
 itertools = "0.13"
-racetime = { version = "0.21", optional = true }
+racetime = { version = "0.21.5", optional = true }
 reqwest = { version = "0.12", default-features = false, optional = true }
 rocket = { version = "0.5", optional = true } # used in proc macro
 rocket-util = { git = "https://github.com/fenhl/rocket-util", branch = "main", optional = true }
 serde = { version = "1", optional = true }
 serde_json = { version = "1", optional = true }
 thiserror = "1"
-tungstenite = { version = "0.20", optional = true }
+tungstenite = { version = "0.21", optional = true }
 wheel-derive = { path = "../wheel-derive", version = "=0.14.0" }
 
 [target.'cfg(tokio_unstable)'.dependencies]

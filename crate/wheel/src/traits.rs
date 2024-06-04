@@ -456,7 +456,7 @@ impl IsNetworkError for tungstenite::Error {
 
 #[cfg(feature = "chrono")]
 /// Error type returned by [`LocalResultExt::single_ok`].
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum TimeFromLocalError<T> {
     /// Given local time representation is invalid. This may be caused by a positive timezone transition.
     None,

@@ -26,7 +26,7 @@ serde = { version = "1", optional = true }
 serde_json = { version = "1", optional = true }
 thiserror = "1"
 tungstenite = { version = "0.21", optional = true }
-wheel-derive = { path = "../wheel-derive", version = "=0.14.0" }
+wheel-derive = { path = "../wheel-derive", version = "=0.14.1" }
 
 [target.'cfg(tokio_unstable)'.dependencies]
 console-subscriber = { version = "0.2", features = ["parking_lot"] } # used in proc macro

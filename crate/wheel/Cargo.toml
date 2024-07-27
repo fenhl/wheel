@@ -5,6 +5,18 @@ authors.workspace = true
 edition.workspace = true
 description = "Rust boilerplate. Reinventing the wheel so you don't have to."
 
+[lints.rust]
+missing_docs = "deny"
+rust_2018_idioms = "deny"
+unexpected_cfgs = { level = "deny", check-cfg = ['cfg(tokio_unstable)'] }
+unsafe_code = "forbid"
+unused = "deny"
+unused_crate_dependencies = "deny"
+unused_import_braces = "deny"
+unused_lifetimes = "deny"
+unused_qualifications = "deny"
+warnings = "deny"
+
 [features]
 default = ["futures", "tokio"]
 racetime = ["dep:racetime", "reqwest", "tungstenite"]
@@ -23,7 +35,7 @@ reqwest = { version = "0.12", default-features = false, optional = true }
 rocket = { version = "0.5", optional = true } # used in proc macro
 rocket-util = { git = "https://github.com/fenhl/rocket-util", branch = "main", optional = true }
 serde = { version = "1", optional = true }
-serde_json = { version = "1", optional = true }
+serde_json = { package = "serde_json_path_to_error", version = "0.1", optional = true }
 thiserror = "1"
 tungstenite = { version = "0.21", optional = true }
 wheel-derive = { path = "../wheel-derive", version = "=0.14.1" }

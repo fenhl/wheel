@@ -184,6 +184,30 @@ impl<T> IoResultExt for serde_json::Result<T> {
     fn missing_ok(self) -> Self where T: Default { self }
 }
 
+#[cfg(all(feature = "serde", feature = "serde_json", feature = "serde_json_path_to_error"))]
+impl<T> IoResultExt for serde_json_path_to_error::Result<T> {
+    type Ok = T;
+
+    fn at_unknown(self) -> Result<T> {
+        self.map_err(|inner| Error::JsonPathToError { inner, context: IoErrorContext::Unknown })
+    }
+
+    fn at(self, path: impl AsRef<Path>) -> Result<T> {
+        self.map_err(|inner| Error::JsonPathToError { inner, context: IoErrorContext::Path(path.as_ref().to_owned()) })
+    }
+
+    fn at2(self, src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<T> {
+        self.map_err(|inner| Error::JsonPathToError { inner, context: IoErrorContext::DoublePath(src.as_ref().to_owned(), dst.as_ref().to_owned()) })
+    }
+
+    fn at_command(self, name: impl Into<Cow<'static, str>>) -> Result<T> {
+        self.map_err(|inner| Error::JsonPathToError { inner, context: IoErrorContext::Command(name.into()) })
+    }
+
+    fn exist_ok(self) -> Self where T: Default { self }
+    fn missing_ok(self) -> Self where T: Default { self }
+}
+
 #[cfg_attr(feature = "tokio", doc = "Extension methods for [`tokio::process::Command`] and [`std::process::Command`]")]
 #[cfg_attr(not(feature = "tokio"), doc = "Extension methods for [`std::process::Command`]")]
 pub trait CommandExt {
@@ -352,10 +376,16 @@ impl ReqwestResponseExt for reqwest::Response {
         }
     }
 
-    #[cfg(all(feature = "serde", feature = "serde_json"))]
+    #[cfg(all(feature = "serde", feature = "serde_json", not(feature = "serde_json_path_to_error")))]
     async fn json_with_text_in_error<T: DeserializeOwned>(self) -> Result<T> {
         let text = self.text().await?;
         serde_json::from_str(&text).map_err(|inner| Error::ResponseJson { inner, text })
+    }
+
+    #[cfg(all(feature = "serde", feature = "serde_json", feature = "serde_json_path_to_error"))]
+    async fn json_with_text_in_error<T: DeserializeOwned>(self) -> Result<T> {
+        let text = self.text().await?;
+        serde_json_path_to_error::from_str(&text).map_err(|inner| Error::ResponseJsonPathToError { inner, text })
     }
 }
 

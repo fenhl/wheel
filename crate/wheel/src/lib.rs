@@ -134,11 +134,26 @@ pub enum Error {
         /// The path or command where this error occurred, if known.
         context: IoErrorContext,
     },
+    #[cfg(all(feature = "serde", feature = "serde_json", feature = "serde_json_path_to_error"))]
+    #[error("{context}: {inner}")]
+    JsonPathToError {
+        #[source]
+        inner: serde_json_path_to_error::Error,
+        /// The path or command where this error occurred, if known.
+        context: IoErrorContext,
+    },
     #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))]
     #[error("{inner}, body:\n\n{text}")]
     ResponseJson {
         #[source]
         inner: serde_json::Error,
+        text: String,
+    },
+    #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json", feature = "serde_json_path_to_error"))]
+    #[error("{inner}, body:\n\n{text}")]
+    ResponseJsonPathToError {
+        #[source]
+        inner: serde_json_path_to_error::Error,
         text: String,
     },
     #[cfg(feature = "reqwest")]

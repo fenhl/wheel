@@ -230,6 +230,64 @@ impl CommandExt for std::process::Command {
     }
 }
 
+#[cfg(feature = "tokio")]
+#[allow(async_fn_in_trait)]
+/// Extension methods for [`tokio::process::Command`]
+pub trait AsyncCommandExt {
+    /// Runs the command, then exits the current process, forwarding the command's exit status.
+    ///
+    /// Uses the native `exec` on Unix, and an approximation using `check` on other platforms.
+    async fn exec(self, name: impl Into<Cow<'static, str>> + Clone + Send + 'static) -> Result<Infallible>;
+}
+
+#[cfg(feature = "tokio")]
+impl AsyncCommandExt for tokio::process::Command {
+    async fn exec(mut self, name: impl Into<Cow<'static, str>> + Clone + Send + 'static) -> Result<Infallible> {
+        (&mut self).exec(name).await
+    }
+}
+
+#[cfg(feature = "tokio")]
+impl<'a> AsyncCommandExt for &'a mut tokio::process::Command {
+    async fn exec(self, name: impl Into<Cow<'static, str>> + Clone + Send + 'static) -> Result<Infallible> {
+        #[cfg(unix)] { Err(std::os::unix::process::CommandExt::exec(self.as_std_mut())).at_command(name) }
+        #[cfg(not(unix))] {
+            let name = name.into();
+            match self.check(name.clone()).await {
+                Ok(output) => std::process::exit(output.status.code().ok_or(Error::CommandExit { name, output })?),
+                Err(e) => Err(e),
+            }
+        }
+    }
+}
+
+/// Extension methods for [`std::process::Command`]
+pub trait SyncCommandExt {
+    /// Runs the command, then exits the current process, forwarding the command's exit status.
+    ///
+    /// Uses the native `exec` on Unix, and an approximation using `check` on other platforms.
+    fn exec(self, name: impl Into<Cow<'static, str>> + Clone + Send + 'static) -> Result<Infallible>;
+}
+
+impl SyncCommandExt for std::process::Command {
+    fn exec(mut self, name: impl Into<Cow<'static, str>> + Clone + Send + 'static) -> Result<Infallible> {
+        (&mut self).exec(name)
+    }
+}
+
+impl<'a> SyncCommandExt for &'a mut std::process::Command {
+    fn exec(self, name: impl Into<Cow<'static, str>> + Clone + Send + 'static) -> Result<Infallible> {
+        #[cfg(unix)] { Err(std::os::unix::process::CommandExt::exec(self)).at_command(name) }
+        #[cfg(not(unix))] {
+            let name = name.into();
+            match self.check(name.clone()) {
+                Ok(output) => std::process::exit(output.status.code().ok_or(Error::CommandExit { name, output })?),
+                Err(e) => Err(e),
+            }
+        }
+    }
+}
+
 /// Adds a `check` method which errors if the command doesn't exit successfully.
 #[async_trait]
 pub trait AsyncCommandOutputExt {

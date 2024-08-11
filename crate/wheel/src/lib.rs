@@ -27,6 +27,10 @@ pub use wheel_derive::{
     lib,
     main,
 };
+#[cfg(feature = "pyo3")] use pyo3::{
+    exceptions::PyException,
+    prelude::*,
+};
 #[cfg(feature = "tokio")] use {
     tokio::{
         io::AsyncWriteExt as _,
@@ -164,6 +168,13 @@ pub enum Error {
         headers: reqwest::header::HeaderMap,
         text: reqwest::Result<String>,
     },
+}
+
+#[cfg(feature = "pyo3")]
+impl From<Error> for PyErr {
+    fn from(e: Error) -> Self {
+        PyException::new_err(e.to_string()) //TODO different exception classes for different Error variants?
+    }
 }
 
 /// A shorthand for a result with defaults for both variants (unit and this crate's [`enum@Error`], respectively).

@@ -31,7 +31,7 @@ clap = "4" # used in proc macro
 futures = { version = "0.3", optional = true }
 itertools = "0.13"
 pyo3 = { version = "0.22.2", optional = true }
-racetime = { version = "0.21.5", optional = true }
+racetime = { version = "0.23", optional = true }
 reqwest = { version = "0.12", default-features = false, optional = true }
 rocket = { version = "0.5", optional = true } # used in proc macro
 rocket-util = { git = "https://github.com/fenhl/rocket-util", branch = "main", optional = true }
@@ -43,7 +43,7 @@ tungstenite = { version = "0.21", optional = true }
 wheel-derive = { path = "../wheel-derive", version = "=0.14.1" }
 
 [target.'cfg(tokio_unstable)'.dependencies]
-console-subscriber = { version = "0.2", features = ["parking_lot"] } # used in proc macro
+console-subscriber = { version = "0.4", features = ["parking_lot"] } # used in proc macro
 tokio = { version = "1", features = ["fs", "io-util", "macros", "parking_lot", "process", "rt-multi-thread", "tracing"], optional = true }
 
 [target.'cfg(not(tokio_unstable))'.dependencies]

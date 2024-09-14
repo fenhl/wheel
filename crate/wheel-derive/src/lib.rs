@@ -142,8 +142,9 @@ pub fn lib(_: TokenStream, item: TokenStream) -> TokenStream {
 /// * Specify as `#[wheel::main(verbose_debug)]` to only enable `debug` behavior if `wheel::IsVerbose::is_verbose` returns `true` for the parsed command-line arguments.
 /// * Specify as `#[wheel::main(rocket)]` to initialize the async runtime using [`rocket::main`](https://docs.rs/rocket/0.5.0/rocket/attr.main.html) instead of [`tokio::main`](https://docs.rs/tokio/latest/tokio/attr.main.html). This requires the `wheel` crate feature `rocket`.
 /// * Specify as `#[wheel::main(console = port)]`, where `port` is a [`u16`] literal, to initialize [`console-subscriber`](https://docs.rs/console-subscriber) for Tokio console. Requires `cfg(tokio_unstable)`.
+/// * Specify as `#[wheel::main(max_blocking_threads = val)]`, where `val` is an [`i16`] literal, to configure the Tokio runtime's [`max_blocking_threads`](https://docs.rs/tokio/latest/tokio/runtime/struct.Builder.html#method.max_blocking_threads). A value less than one will be added to the [`available_parallelism`](https://doc.rust-lang.org/std/thread/fn.available_parallelism.html), e.g. specifying `#[wheel::main(max_blocking_threads = -1)]` when 16 cores are detected will configure Tokio with 15 `max_blocking_threads`.
 ///
-/// The `rocket` and `console` parameters can also be combined with each other and/or one of the others, e.g. `#[wheel::main(no_debug, rocket, console = 6669)]`.
+/// The `custom_exit`, `debug`, `no_debug`, and `verbose_debug` parameters are mutually exclusive, but otherwise parameters can be combined with each other, e.g. `#[wheel::main(no_debug, rocket, console = 6669)]`.
 #[proc_macro_attribute]
 pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args with Punctuated::<Meta, Token![,]>::parse_terminated);
@@ -152,6 +153,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let mut debug_arg = true;
     let mut use_rocket = false;
     let mut console_port = None::<u16>;
+    let mut max_blocking_threads = None::<i16>;
     for arg in args {
         if arg.path().is_ident("console") {
             match arg.require_name_value() {
@@ -192,6 +194,25 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
                 }.into()
             }
             debug = Some(true);
+        } else if arg.path().is_ident("max_blocking_threads") {
+            match arg.require_name_value() {
+                Ok(MetaNameValue { value, .. }) => if let Expr::Lit(ExprLit { lit: Lit::Int(lit), .. }) = value {
+                    if max_blocking_threads.is_some() {
+                        return quote_spanned! {arg.span()=>
+                            compile_error!("`#[wheel::main(max_blocking_threads)]` specified multiple times");
+                        }.into()
+                    }
+                    match lit.base10_parse() {
+                        Ok(val) => max_blocking_threads = Some(val),
+                        Err(e) => return e.into_compile_error().into(),
+                    }
+                } else {
+                    return quote_spanned! {value.span()=>
+                        compile_error!("max_blocking_threads value must be an i32 literal");
+                    }.into()
+                },
+                Err(e) => return e.into_compile_error().into(),
+            }
         } else if arg.path().is_ident("no_debug") {
             if let Err(e) = arg.require_path_only() {
                 return e.into_compile_error().into()
@@ -293,9 +314,19 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
         if use_rocket {
             quote!(::wheel::rocket::async_main(main_inner(#args)))
         } else {
-            quote! {
+            let mut builder = quote! {
                 ::wheel::tokio::runtime::Builder::new_multi_thread()
                     .enable_all()
+            };
+            if let Some(max_blocking_threads) = max_blocking_threads {
+                builder = if max_blocking_threads > 0 {
+                    quote!(builder.max_blocking_threads(#max_blocking_threads.into()))
+                } else {
+                    quote!(build.max_blocking_threads(::std::thread::available_parallelism().unwrap_or(::std::num::NonZeroUsize::MIN).get().checked_add_signed(#max_blocking_threads).unwrap_or(1)))
+                };
+            }
+            quote! {
+                #builder
                     .build().expect("failed to set up tokio runtime in wheel::main")
                     .block_on(main_inner(#args))
             }

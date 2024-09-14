@@ -320,9 +320,9 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             };
             if let Some(max_blocking_threads) = max_blocking_threads {
                 builder = if max_blocking_threads > 0 {
-                    quote!(builder.max_blocking_threads(#max_blocking_threads.into()))
+                    quote!(#builder.max_blocking_threads(#max_blocking_threads.into()))
                 } else {
-                    quote!(build.max_blocking_threads(::std::thread::available_parallelism().unwrap_or(::std::num::NonZeroUsize::MIN).get().checked_add_signed(#max_blocking_threads).unwrap_or(1)))
+                    quote!(#builder.max_blocking_threads(::std::thread::available_parallelism().unwrap_or(::std::num::NonZeroUsize::MIN).get().checked_add_signed(#max_blocking_threads.into()).unwrap_or(1)))
                 };
             }
             quote! {

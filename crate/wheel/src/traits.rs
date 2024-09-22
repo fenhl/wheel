@@ -509,7 +509,7 @@ impl IsNetworkError for racetime::Error {
             Self::LocationCategory => false,
             Self::LocationFormat => false,
             Self::MissingLocationHeader => false,
-            Self::Reqwest(e) => e.is_network_error(),
+            Self::Reqwest(e) | Self::ResponseStatus { inner: e, .. } => e.is_network_error(),
             Self::Server(_) => false,
             Self::Tungstenite(e) => e.is_network_error(),
             Self::UnexpectedMessageType(_) => false,

@@ -213,6 +213,12 @@ impl<T> IoResultExt for serde_json_path_to_error::Result<T> {
 pub trait CommandExt {
     /// Suppresses creating a console window on Windows. Has no effect on other platforms.
     fn create_no_window(&mut self) -> &mut Self;
+
+    /// Suppresses creating a Windows console window if compiled in release mode. No effect if compiled in debug mode.
+    fn release_create_no_window(&mut self) -> &mut Self {
+        #[cfg(not(debug_assertions))] self.create_no_window();
+        self
+    }
 }
 
 #[cfg(feature = "tokio")]

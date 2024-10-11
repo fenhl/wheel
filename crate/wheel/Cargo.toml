@@ -20,12 +20,12 @@ warnings = "deny"
 [features]
 default = ["futures", "tokio"]
 racetime = ["dep:racetime", "reqwest", "tungstenite021"]
-tungstenite021 = ["async-proto?/tungstenite", "dep:tungstenite021"]
-tungstenite024 = ["dep:tungstenite024"]
+tungstenite021 = ["async-proto?/tokio-tungstenite021", "dep:tungstenite021"]
+tungstenite024 = ["async-proto?/tokio-tungstenite024", "dep:tungstenite024"]
 rocket-util = ["dep:rocket-util"]
 
 [dependencies]
-async-proto = { version = "0.23", optional = true }
+async-proto = { version = "0.24", optional = true }
 async-trait = "0.1"
 chrono = { version = "0.4", default-features = false, features = ["alloc"], optional = true }
 clap = "4" # used in proc macro

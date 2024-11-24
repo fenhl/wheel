@@ -20,6 +20,10 @@ use {
     chrono::prelude::*,
 };
 #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))] use serde::de::DeserializeOwned;
+#[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))] use {
+    std::time::Duration,
+    tokio::time::sleep,
+};
 
 /// A convenience method for working with infallible results
 pub trait ResultNeverExt {
@@ -410,6 +414,59 @@ impl SyncCommandOutputExt for std::process::ExitStatus {
             Ok(self)
         } else {
             Err(Error::CommandExitStatus { name: name.into(), status: self })
+        }
+    }
+}
+
+#[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))]
+/// Adds a `send_github` method which automatically handles the GitHub REST API's rate limits.
+#[async_trait]
+pub trait RequestBuilderExt {
+    /// Like `send` but automatically handles the GitHub REST API's rate limits.
+    async fn send_github(self, verbose: bool) -> Result<reqwest::Response, Error>;
+}
+
+#[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))]
+#[async_trait]
+impl RequestBuilderExt for reqwest::RequestBuilder {
+    /// Like `send` but automatically handles the GitHub REST API's rate limits.
+    ///
+    /// # Errors
+    ///
+    /// In addition to errors from `send` and errors parsing the rate limiting headers, this method will error if the request has a streaming body.
+    async fn send_github(self, verbose: bool) -> Result<reqwest::Response, Error> {
+        let mut exponential_backoff = Duration::from_secs(60);
+        loop {
+            match self.try_clone().ok_or(Error::UncloneableGitHubRequest)?.send().await?.detailed_error_for_status().await {
+                Ok(response) => break Ok(response),
+                Err(Error::ResponseStatus { inner, headers, text }) if inner.status().is_some_and(|status| matches!(status, reqwest::StatusCode::FORBIDDEN | reqwest::StatusCode::TOO_MANY_REQUESTS)) => {
+                    if let Some(retry_after) = headers.get(reqwest::header::RETRY_AFTER) {
+                        let delta = Duration::from_secs(retry_after.to_str()?.parse()?);
+                        if verbose {
+                            println!("{} Received retry_after, sleeping for {delta:?}", Utc::now().format("%Y-%m-%d %H:%M:%S"));
+                        }
+                        sleep(delta).await;
+                    } else if headers.get("x-ratelimit-remaining").is_some_and(|x_ratelimit_remaining| x_ratelimit_remaining == "0") {
+                        let now = Utc::now();
+                        let until = DateTime::from_timestamp(headers.get("x-ratelimit-reset").ok_or(Error::MissingRateLimitResetHeader)?.to_str()?.parse()?, 0).ok_or(Error::InvalidDateTime)?;
+                        if let Ok(delta) = (until - now).to_std() {
+                            if verbose {
+                                println!("{} Received x-ratelimit-remaining, sleeping for {delta:?}", Utc::now().format("%Y-%m-%d %H:%M:%S"));
+                            }
+                            sleep(delta).await;
+                        }
+                    } else if exponential_backoff >= Duration::from_secs(60 * 60) {
+                        break Err(Error::ResponseStatus { inner, headers, text }.into())
+                    } else {
+                        if verbose {
+                            println!("{} Received unspecific rate limit error, sleeping for {exponential_backoff:?}", Utc::now().format("%Y-%m-%d %H:%M:%S"));
+                        }
+                        sleep(exponential_backoff).await;
+                        exponential_backoff *= 2;
+                    }
+                }
+                Err(e) => break Err(e.into()),
+            }
         }
     }
 }

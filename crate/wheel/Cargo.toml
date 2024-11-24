@@ -27,7 +27,7 @@ rocket-util = ["dep:rocket-util"]
 [dependencies]
 async-proto = { version = "0.24", optional = true }
 async-trait = "0.1"
-chrono = { version = "0.4", default-features = false, features = ["alloc"], optional = true }
+chrono = { version = "0.4", default-features = false, features = ["now"], optional = true }
 clap = "4" # used in proc macro
 futures = { version = "0.3", optional = true }
 itertools = "0.13"

@@ -534,6 +534,7 @@ impl IsNetworkError for io::Error {
             | io::ErrorKind::ConnectionAborted
             | io::ErrorKind::ConnectionRefused
             | io::ErrorKind::ConnectionReset
+            | io::ErrorKind::HostUnreachable
             | io::ErrorKind::NetworkUnreachable
             | io::ErrorKind::TimedOut
             | io::ErrorKind::UnexpectedEof

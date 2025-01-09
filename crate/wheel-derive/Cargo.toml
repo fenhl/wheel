@@ -9,7 +9,7 @@ description = "Derive macros for the wheel crate."
 proc-macro = true
 
 [dependencies]
-itertools = "0.13"
+itertools = "0.14"
 proc-macro2 = "1"
 quote = "1"
 syn = { version = "2", features = ["full"] }

@@ -30,6 +30,7 @@ use {
             AsyncRead,
             AsyncSeek,
             AsyncWrite,
+            AsyncWriteExt as _,
         },
     },
     crate::{
@@ -318,6 +319,12 @@ pub async fn write(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result
     tokio::fs::write(path, contents).await.at(path)
 }
 
+/// Like [`write()`] but return [`io::ErrorKind::AlreadyExists`] if the file exists.
+pub async fn write_new(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result {
+    let path = path.as_ref();
+    File::create_new(path).await?.write_all(contents.as_ref()).await.at(path)
+}
+
 #[cfg(feature = "serde_json")]
 /// A convenience method for serializing and writing a JSON file with proper indentation and a trailing newline.
 pub async fn write_json(path: impl AsRef<Path>, value: impl Serialize) -> Result {
@@ -327,4 +334,15 @@ pub async fn write_json(path: impl AsRef<Path>, value: impl Serialize) -> Result
     let mut buf = serializer.into_inner();
     buf.push(b'\n');
     write(path, buf).await
+}
+
+#[cfg(feature = "serde_json")]
+/// Like [`write_json`] but return [`io::ErrorKind::AlreadyExists`] if the file exists.
+pub async fn write_json_new(path: impl AsRef<Path>, value: impl Serialize) -> Result {
+    let path = path.as_ref();
+    let mut serializer = serde_json::Serializer::with_formatter(Vec::default(), serde_json::ser::PrettyFormatter::with_indent(b"    "));
+    value.serialize(&mut serializer).at(path)?;
+    let mut buf = serializer.into_inner();
+    buf.push(b'\n');
+    write_new(path, buf).await
 }

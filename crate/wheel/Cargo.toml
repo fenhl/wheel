@@ -42,7 +42,7 @@ serde_json_path_to_error = { version = "0.1", optional = true }
 thiserror = "2"
 tungstenite021 = { package = "tungstenite", version = "0.21", optional = true }
 tungstenite024 = { package = "tungstenite", version = "0.24", optional = true }
-wheel-derive = { path = "../wheel-derive", version = "=0.14.4" }
+wheel-derive = { path = "../wheel-derive", version = "=0.14.5" }
 
 [target.'cfg(tokio_unstable)'.dependencies]
 console-subscriber = { version = "0.4", features = ["parking_lot"] } # used in proc macro

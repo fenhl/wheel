@@ -38,7 +38,7 @@ pub fn from_arc(input: TokenStream) -> TokenStream {
                 let field_ty = match arc_ty {
                     Type::Path(path) => match path.path.segments.iter().last().expect("empty type path").arguments {
                         PathArguments::AngleBracketed(ref args) => match args.args.iter().exactly_one().ok().expect("field type must have exactly one type argument") {
-                            GenericArgument::Type(ref type_param) => type_param.clone(),
+                            GenericArgument::Type(type_param) => type_param.clone(),
                             _ => panic!("field type must have a type parameter"),
                         },
                         _ => panic!("field type must be of the form Arc<T>"),

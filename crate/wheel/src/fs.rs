@@ -78,6 +78,15 @@ impl File {
         })
     }
 
+    /// A wrapper around [`tokio::fs::File::create_new`].
+    pub async fn create_new(path: impl AsRef<Path>) -> Result<Self> {
+        let path = path.as_ref();
+        Ok(Self {
+            inner: tokio::fs::File::create_new(path).await.at(path)?,
+            path: path.to_owned(),
+        })
+    }
+
     /// A wrapper around [`tokio::fs::OpenOptions::open`].
     pub async fn from_options(options: &OpenOptions, path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();

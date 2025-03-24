@@ -44,11 +44,13 @@ pub use {
     },
     tokio::fs::DirEntry,
 };
-#[cfg(all(feature = "serde", feature = "serde_json"))] use serde::{
-    Deserialize,
-    Serialize,
+#[cfg(feature = "serde_json")] use {
+    serde::{
+        Deserialize,
+        Serialize,
+    },
+    serde_json_path_to_error as serde_json,
 };
-#[cfg(all(feature = "serde", feature = "serde_json", feature = "serde_json_path_to_error"))] use serde_json_path_to_error as serde_json;
 
 /// A wrapper around [`tokio::fs::File`].
 #[derive(Debug)]
@@ -220,7 +222,7 @@ pub fn read_dir(path: impl AsRef<Path>) -> impl Stream<Item = Result<DirEntry>> 
     })
 }
 
-#[cfg(all(feature = "serde", feature = "serde_json"))]
+#[cfg(feature = "serde_json")]
 /// A convenience method for reading and deserializing a JSON file. Loads the contents of the file into memory during deserializaton.
 pub async fn read_json<T: for<'de> Deserialize<'de>>(path: impl AsRef<Path>) -> Result<T> {
     let path = path.as_ref();
@@ -307,7 +309,7 @@ pub async fn write(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result
     tokio::fs::write(path, contents).await.at(path)
 }
 
-#[cfg(all(feature = "serde", feature = "serde_json"))]
+#[cfg(feature = "serde_json")]
 /// A convenience method for serializing and writing a JSON file with proper indentation and a trailing newline.
 pub async fn write_json(path: impl AsRef<Path>, value: impl Serialize) -> Result {
     let path = path.as_ref();

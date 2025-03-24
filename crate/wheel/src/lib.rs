@@ -106,11 +106,11 @@ impl fmt::Display for IoErrorContext {
 /// An error that can be returned from the [traits] in this crate.
 #[allow(missing_docs)]
 #[derive(Debug, Error)]
-#[cfg_attr(feature = "rocket-util", derive(rocket_util::Error))]
+#[cfg_attr(feature = "rocket", derive(rocket_util::Error))]
 pub enum Error {
     #[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))] #[error(transparent)] HeaderToStr(#[from] reqwest::header::ToStrError),
     #[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))] #[error(transparent)] ParseInt(#[from] std::num::ParseIntError),
-    #[cfg(any(all(feature = "reqwest", feature = "serde", feature = "serde_json"), all(feature = "chrono", feature = "reqwest", feature = "tokio")))] #[error(transparent)] Reqwest(#[from] reqwest::Error),
+    #[cfg(any(all(feature = "reqwest", feature = "serde_json"), all(feature = "chrono", feature = "reqwest", feature = "tokio")))] #[error(transparent)] Reqwest(#[from] reqwest::Error),
     /// A subprocess exited with a non-success status. Output information is available.
     #[error("command `{name}` exited with {}", .output.status)]
     CommandExit {
@@ -135,7 +135,7 @@ pub enum Error {
         /// The path or command where this error occurred, if known.
         context: IoErrorContext,
     },
-    #[cfg(all(feature = "serde", feature = "serde_json"))]
+    #[cfg(feature = "serde_json")]
     #[error("{context}: {inner}")]
     Json {
         #[source]
@@ -143,7 +143,7 @@ pub enum Error {
         /// The path or command where this error occurred, if known.
         context: IoErrorContext,
     },
-    #[cfg(all(feature = "serde", feature = "serde_json", feature = "serde_json_path_to_error"))]
+    #[cfg(feature = "serde_json")]
     #[error("{context}: {inner}")]
     JsonPathToError {
         #[source]
@@ -154,14 +154,14 @@ pub enum Error {
     #[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))]
     #[error("missing x-ratelimit-reset header in GitHub error response")]
     MissingRateLimitResetHeader,
-    #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))]
+    #[cfg(all(feature = "reqwest", feature = "serde_json"))]
     #[error("{inner}, body:\n\n{text}")]
     ResponseJson {
         #[source]
         inner: serde_json::Error,
         text: String,
     },
-    #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json", feature = "serde_json_path_to_error"))]
+    #[cfg(all(feature = "reqwest", feature = "serde_json"))]
     #[error("{inner}, body:\n\n{text}")]
     ResponseJsonPathToError {
         #[source]

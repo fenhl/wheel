@@ -20,9 +20,10 @@ warnings = "deny"
 [features]
 default = ["futures", "tokio"]
 racetime = ["dep:racetime", "reqwest", "tungstenite021"]
+rocket = ["dep:rocket", "rocket-util"]
+serde_json = ["serde", "dep:serde_json", "serde_json_path_to_error"]
 tungstenite021 = ["async-proto?/tokio-tungstenite021", "dep:tungstenite021"]
 tungstenite024 = ["async-proto?/tokio-tungstenite024", "dep:tungstenite024"]
-rocket-util = ["dep:rocket-util"]
 
 [dependencies]
 async-proto = { version = "0.24", optional = true }
@@ -42,7 +43,7 @@ serde_json_path_to_error = { version = "0.1", optional = true }
 thiserror = "2"
 tungstenite021 = { package = "tungstenite", version = "0.21", optional = true }
 tungstenite024 = { package = "tungstenite", version = "0.24", optional = true }
-wheel-derive = { path = "../wheel-derive", version = "=0.14.5" }
+wheel-derive = { path = "../wheel-derive", version = "=0.15.0" }
 
 [target.'cfg(tokio_unstable)'.dependencies]
 console-subscriber = { version = "0.4", features = ["parking_lot"] } # used in proc macro

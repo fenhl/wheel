@@ -19,7 +19,7 @@ use {
     std::fmt,
     chrono::prelude::*,
 };
-#[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))] use serde::de::DeserializeOwned;
+#[cfg(all(feature = "reqwest", feature = "serde_json"))] use serde::de::DeserializeOwned;
 #[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))] use {
     std::time::Duration,
     tokio::time::sleep,
@@ -164,7 +164,7 @@ impl<T> IoResultExt for Result<T> {
     }
 }
 
-#[cfg(all(feature = "serde", feature = "serde_json"))]
+#[cfg(feature = "serde_json")]
 impl<T> IoResultExt for serde_json::Result<T> {
     type Ok = T;
 
@@ -188,7 +188,7 @@ impl<T> IoResultExt for serde_json::Result<T> {
     fn missing_ok(self) -> Self where T: Default { self }
 }
 
-#[cfg(all(feature = "serde", feature = "serde_json", feature = "serde_json_path_to_error"))]
+#[cfg(feature = "serde_json")]
 impl<T> IoResultExt for serde_json_path_to_error::Result<T> {
     type Ok = T;
 
@@ -478,7 +478,7 @@ pub trait ReqwestResponseExt: Sized {
     /// Like `error_for_status` but includes response headers and text in the error.
     async fn detailed_error_for_status(self) -> Result<Self>;
 
-    #[cfg(all(feature = "serde", feature = "serde_json"))]
+    #[cfg(feature = "serde_json")]
     /// Like `json` but include response text in the error.
     async fn json_with_text_in_error<T: DeserializeOwned>(self) -> Result<T>;
 }
@@ -497,13 +497,7 @@ impl ReqwestResponseExt for reqwest::Response {
         }
     }
 
-    #[cfg(all(feature = "serde", feature = "serde_json", not(feature = "serde_json_path_to_error")))]
-    async fn json_with_text_in_error<T: DeserializeOwned>(self) -> Result<T> {
-        let text = self.text().await?;
-        serde_json::from_str(&text).map_err(|inner| Error::ResponseJson { inner, text })
-    }
-
-    #[cfg(all(feature = "serde", feature = "serde_json", feature = "serde_json_path_to_error"))]
+    #[cfg(feature = "serde_json")]
     async fn json_with_text_in_error<T: DeserializeOwned>(self) -> Result<T> {
         let text = self.text().await?;
         serde_json_path_to_error::from_str(&text).map_err(|inner| Error::ResponseJsonPathToError { inner, text })
@@ -520,7 +514,7 @@ impl IsNetworkError for Error {
     fn is_network_error(&self) -> bool {
         match self {
             Self::Io { inner, .. } => inner.is_network_error(),
-            #[cfg(all(feature = "reqwest", feature = "serde", feature = "serde_json"))] Self::Reqwest(e) => e.is_network_error(),
+            #[cfg(all(feature = "reqwest", feature = "serde_json"))] Self::Reqwest(e) => e.is_network_error(),
             #[cfg(feature = "reqwest")] Self::ResponseStatus { inner, .. } => inner.is_network_error(),
             _ => false,
         }

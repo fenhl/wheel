@@ -24,9 +24,10 @@ rocket = ["dep:rocket", "dep:rocket-util"]
 serde_json = ["serde", "dep:serde_json", "dep:serde_json_path_to_error"]
 tungstenite021 = ["async-proto?/tokio-tungstenite021", "dep:tungstenite021"]
 tungstenite024 = ["async-proto?/tokio-tungstenite024", "dep:tungstenite024"]
+tungstenite026 = ["async-proto?/tokio-tungstenite026", "dep:tungstenite026"]
 
 [dependencies]
-async-proto = { version = "0.24", optional = true }
+async-proto = { version = "0.25", optional = true }
 async-trait = "0.1"
 chrono = { version = "0.4", default-features = false, features = ["now"], optional = true }
 clap = "4" # used in proc macro
@@ -43,6 +44,7 @@ serde_json_path_to_error = { version = "0.1", optional = true }
 thiserror = "2"
 tungstenite021 = { package = "tungstenite", version = "0.21", optional = true }
 tungstenite024 = { package = "tungstenite", version = "0.24", optional = true }
+tungstenite026 = { package = "tungstenite", version = "0.26", optional = true }
 wheel-derive = { path = "../wheel-derive", version = "=0.15.0" }
 
 [target.'cfg(tokio_unstable)'.dependencies]

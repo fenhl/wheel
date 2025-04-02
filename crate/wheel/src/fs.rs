@@ -30,6 +30,7 @@ use {
             AsyncRead,
             AsyncSeek,
             AsyncWrite,
+            AsyncWriteExt as _,
         },
     },
     crate::{
@@ -44,11 +45,13 @@ pub use {
     },
     tokio::fs::DirEntry,
 };
-#[cfg(all(feature = "serde", feature = "serde_json"))] use serde::{
-    Deserialize,
-    Serialize,
+#[cfg(feature = "serde_json")] use {
+    serde::{
+        Deserialize,
+        Serialize,
+    },
+    serde_json_path_to_error as serde_json,
 };
-#[cfg(all(feature = "serde", feature = "serde_json", feature = "serde_json_path_to_error"))] use serde_json_path_to_error as serde_json;
 
 /// A wrapper around [`tokio::fs::File`].
 #[derive(Debug)]
@@ -72,6 +75,15 @@ impl File {
         let path = path.as_ref();
         Ok(Self {
             inner: tokio::fs::File::create(path).await.at(path)?,
+            path: path.to_owned(),
+        })
+    }
+
+    /// A wrapper around [`tokio::fs::File::create_new`].
+    pub async fn create_new(path: impl AsRef<Path>) -> Result<Self> {
+        let path = path.as_ref();
+        Ok(Self {
+            inner: tokio::fs::File::create_new(path).await.at(path)?,
             path: path.to_owned(),
         })
     }
@@ -220,7 +232,7 @@ pub fn read_dir(path: impl AsRef<Path>) -> impl Stream<Item = Result<DirEntry>> 
     })
 }
 
-#[cfg(all(feature = "serde", feature = "serde_json"))]
+#[cfg(feature = "serde_json")]
 /// A convenience method for reading and deserializing a JSON file. Loads the contents of the file into memory during deserializaton.
 pub async fn read_json<T: for<'de> Deserialize<'de>>(path: impl AsRef<Path>) -> Result<T> {
     let path = path.as_ref();
@@ -307,7 +319,13 @@ pub async fn write(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result
     tokio::fs::write(path, contents).await.at(path)
 }
 
-#[cfg(all(feature = "serde", feature = "serde_json"))]
+/// Like [`write()`] but return [`io::ErrorKind::AlreadyExists`] if the file exists.
+pub async fn write_new(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result {
+    let path = path.as_ref();
+    File::create_new(path).await?.write_all(contents.as_ref()).await.at(path)
+}
+
+#[cfg(feature = "serde_json")]
 /// A convenience method for serializing and writing a JSON file with proper indentation and a trailing newline.
 pub async fn write_json(path: impl AsRef<Path>, value: impl Serialize) -> Result {
     let path = path.as_ref();
@@ -316,4 +334,15 @@ pub async fn write_json(path: impl AsRef<Path>, value: impl Serialize) -> Result
     let mut buf = serializer.into_inner();
     buf.push(b'\n');
     write(path, buf).await
+}
+
+#[cfg(feature = "serde_json")]
+/// Like [`write_json`] but return [`io::ErrorKind::AlreadyExists`] if the file exists.
+pub async fn write_json_new(path: impl AsRef<Path>, value: impl Serialize) -> Result {
+    let path = path.as_ref();
+    let mut serializer = serde_json::Serializer::with_formatter(Vec::default(), serde_json::ser::PrettyFormatter::with_indent(b"    "));
+    value.serialize(&mut serializer).at(path)?;
+    let mut buf = serializer.into_inner();
+    buf.push(b'\n');
+    write_new(path, buf).await
 }

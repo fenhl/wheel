@@ -19,7 +19,7 @@ warnings = "deny"
 
 [features]
 default = ["futures", "tokio"]
-racetime = ["dep:racetime", "reqwest", "tungstenite021"]
+racetime = ["dep:racetime", "reqwest", "tungstenite026"]
 rocket = ["dep:rocket", "dep:rocket-util"]
 serde_json = ["serde", "dep:serde_json", "dep:serde_json_path_to_error"]
 tungstenite021 = ["async-proto?/tokio-tungstenite021", "dep:tungstenite021"]

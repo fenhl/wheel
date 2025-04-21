@@ -698,3 +698,37 @@ impl<T> LocalResultExt for chrono::LocalResult<T> {
         }
     }
 }
+
+#[cfg(feature = "tokio")]
+/// A more explicit way to ignore when a message is dropped due to a lack of listeners.
+pub trait SendResultExt {
+    /// The return type of `allow_unreceived`.
+    type Ok;
+
+    /// A more explicit way to ignore when a message is dropped due to a lack of listeners.
+    fn allow_unreceived(self) -> Self::Ok;
+}
+
+#[cfg(feature = "tokio")]
+impl<T> SendResultExt for Result<usize, tokio::sync::broadcast::error::SendError<T>> {
+    type Ok = usize;
+
+    fn allow_unreceived(self) -> usize {
+        match self {
+            Ok(n) => n,
+            Err(tokio::sync::broadcast::error::SendError(_)) => 0
+        }
+    }
+}
+
+#[cfg(feature = "tokio")]
+impl<T> SendResultExt for Result<(), tokio::sync::mpsc::error::SendError<T>> {
+    type Ok = ();
+
+    fn allow_unreceived(self) {
+        match self {
+            Ok(()) => {}
+            Err(tokio::sync::mpsc::error::SendError(_)) => {}
+        }
+    }
+}

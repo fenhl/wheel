@@ -49,7 +49,7 @@ wheel-derive = { path = "../wheel-derive", version = "=0.15.0" }
 
 [target.'cfg(tokio_unstable)'.dependencies]
 console-subscriber = { version = "0.4", features = ["parking_lot"] } # used in proc macro
-tokio = { version = "1", features = ["fs", "io-util", "macros", "parking_lot", "process", "rt-multi-thread", "tracing"], optional = true }
+tokio = { version = "1", features = ["fs", "io-util", "macros", "parking_lot", "process", "rt-multi-thread", "sync", "tracing"], optional = true }
 
 [target.'cfg(not(tokio_unstable))'.dependencies]
-tokio = { version = "1", features = ["fs", "io-util", "macros", "parking_lot", "process", "rt-multi-thread"], optional = true }
+tokio = { version = "1", features = ["fs", "io-util", "macros", "parking_lot", "process", "rt-multi-thread", "sync"], optional = true }

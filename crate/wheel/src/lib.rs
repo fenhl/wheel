@@ -46,6 +46,7 @@ pub use wheel_derive::{
 #[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;
 
 #[cfg(feature = "tokio")] pub mod fs;
+#[cfg(feature = "gui")] pub mod gui;
 pub mod traits;
 
 /// Prints the given prompt to stdout, then reads and returns a line from stdin.

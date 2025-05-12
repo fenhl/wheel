@@ -45,6 +45,10 @@ pub use {
     },
     tokio::fs::DirEntry,
 };
+#[cfg(feature = "rocket")] use rocket::{
+    request::Request,
+    response::Responder,
+};
 #[cfg(feature = "serde_json")] use {
     serde::{
         Deserialize,
@@ -167,6 +171,13 @@ impl Deref for File {
 impl DerefMut for File {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
+    }
+}
+
+#[cfg(feature = "rocket")]
+impl<'r> Responder<'r, 'static> for File {
+    fn respond_to(self, request: &'r Request<'_>) -> rocket::response::Result<'static> {
+        self.inner.respond_to(request)
     }
 }
 

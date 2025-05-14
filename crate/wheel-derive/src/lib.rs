@@ -312,7 +312,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     };
     let call_main_inner = if asyncness.is_some() {
         if use_rocket {
-            quote!(::wheel::rocket::async_main(main_inner(#args)))
+            quote!(::wheel::rocket::async_main(__wheel_main_inner(#args)))
         } else {
             let mut builder = quote! {
                 ::wheel::tokio::runtime::Builder::new_multi_thread()
@@ -328,15 +328,15 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             quote! {
                 #builder
                     .build().expect("failed to set up tokio runtime in wheel::main")
-                    .block_on(main_inner(#args))
+                    .block_on(__wheel_main_inner(#args))
             }
         }
     } else {
-        quote!(main_inner(#args))
+        quote!(__wheel_main_inner(#args))
     };
     TokenStream::from(quote! {
         fn main() {
-            #asyncness fn main_inner(#arg) #ret #body
+            #asyncness fn __wheel_main_inner(#arg) #ret #body
 
             //TODO set up a more friendly panic hook (similar to human-panic but actually showing the panic message)
             #init_console_subscriber

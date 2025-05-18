@@ -603,6 +603,7 @@ impl IsNetworkError for tungstenite021::Error {
                 let display = e.to_string();
                 display == "No such host is known. (os error 11001)"
                 || display == "failed to lookup address information: Temporary failure in name resolution"
+                || display == "failed to lookup address information: No address associated with hostname"
                 || e.is_network_error()
             }
             Self::Protocol(tungstenite021::error::ProtocolError::ResetWithoutClosingHandshake) => true,
@@ -621,6 +622,7 @@ impl IsNetworkError for tungstenite024::Error {
                 let display = e.to_string();
                 display == "No such host is known. (os error 11001)"
                 || display == "failed to lookup address information: Temporary failure in name resolution"
+                || display == "failed to lookup address information: No address associated with hostname"
                 || e.is_network_error()
             }
             Self::Protocol(tungstenite024::error::ProtocolError::ResetWithoutClosingHandshake) => true,
@@ -639,6 +641,7 @@ impl IsNetworkError for tungstenite026::Error {
                 let display = e.to_string();
                 display == "No such host is known. (os error 11001)"
                 || display == "failed to lookup address information: Temporary failure in name resolution"
+                || display == "failed to lookup address information: No address associated with hostname"
                 || e.is_network_error()
             }
             Self::Protocol(tungstenite026::error::ProtocolError::ResetWithoutClosingHandshake) => true,

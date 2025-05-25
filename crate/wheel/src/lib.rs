@@ -306,7 +306,7 @@ pub fn yesno(prompt: &str) -> Result<bool> {
 #[cfg(feature = "tokio")]
 /// Report an error to `night`, my personal status monitor system.
 ///
-/// Only works if called on mercredi as a user who has access to `nightd report` via sudo.
+/// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
 pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
     let mut cmd = Command::new("sudo");
     cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg(path);
@@ -322,7 +322,7 @@ pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::proces
 
 /// Report an error to `night`, my personal status monitor system.
 ///
-/// Only works if called on mercredi as a user who has access to `nightd report` via sudo.
+/// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
 pub fn night_report_sync(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
     let mut cmd = std::process::Command::new("sudo");
     cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg(path);

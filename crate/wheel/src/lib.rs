@@ -222,6 +222,22 @@ impl MainOutput for i32 {
     }
 }
 
+impl MainOutput for std::process::ExitStatus {
+    #[cfg_attr(unix, allow(unused))]
+    fn exit(self, cmd_name: &'static str, debug: bool) -> ! {
+        #[cfg(unix)] {
+            std::process::exit(std::os::unix::process::ExitStatusExt::into_raw(self))
+        }
+        #[cfg(not(unix))] {
+            if let Some(code) = self.code() {
+                std::process::exit(code)
+            } else {
+                self.success().exit(cmd_name, debug)
+            }
+        }
+    }
+}
+
 impl<T: MainOutput, E: fmt::Debug + fmt::Display> MainOutput for Result<T, E> {
     fn exit(self, cmd_name: &'static str, debug: bool) -> ! {
         match self {

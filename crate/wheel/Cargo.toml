@@ -57,5 +57,5 @@ tokio = { version = "1", features = ["fs", "io-util", "macros", "parking_lot", "
 [target.'cfg(not(tokio_unstable))'.dependencies]
 tokio = { version = "1", features = ["fs", "io-util", "macros", "parking_lot", "process", "rt-multi-thread", "sync"], optional = true }
 
-[target.'cfg(target_os = "linux")'.dependencies]
+[target.'cfg(all(target_os = "linux", not(doc)))'.dependencies]
 gio = { version = "0.20.9", optional = true }

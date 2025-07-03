@@ -7,14 +7,14 @@ use {
     },
     iced::Theme,
 };
-#[cfg(target_os = "linux")] use gio::prelude::*;
+#[cfg(all(target_os = "linux", not(doc)))] use gio::prelude::*;
 
 /// A function which can be used in [`iced::Application::theme`] or [`iced::Daemon::theme`] and returns the built-in light or dark theme based on system preferences.
 ///
 /// Compared to iced's `auto-detect-theme` feature, this function adds compatibility with GNOME.
 pub fn theme() -> Theme {
     //TODO automatically update on system theme change (https://github.com/fenhl/wheel/issues/1)
-    #[cfg(target_os = "linux")] {
+    #[cfg(all(target_os = "linux", not(doc)))] {
         let settings = gio::Settings::new("org.gnome.desktop.interface");
         if settings.settings_schema().map_or(false, |schema| schema.has_key("color-scheme")) {
             match settings.string("color-scheme").as_str() {

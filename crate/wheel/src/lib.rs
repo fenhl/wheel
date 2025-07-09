@@ -46,6 +46,7 @@ pub use wheel_derive::{
 #[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;
 
 #[cfg(feature = "tokio")] pub mod fs;
+#[cfg(feature = "gui")] pub mod gui;
 pub mod traits;
 
 /// Prints the given prompt to stdout, then reads and returns a line from stdin.
@@ -221,6 +222,22 @@ impl MainOutput for i32 {
     }
 }
 
+impl MainOutput for std::process::ExitStatus {
+    #[cfg_attr(unix, allow(unused))]
+    fn exit(self, cmd_name: &'static str, debug: bool) -> ! {
+        #[cfg(unix)] {
+            std::process::exit(std::os::unix::process::ExitStatusExt::into_raw(self))
+        }
+        #[cfg(not(unix))] {
+            if let Some(code) = self.code() {
+                std::process::exit(code)
+            } else {
+                self.success().exit(cmd_name, debug)
+            }
+        }
+    }
+}
+
 impl<T: MainOutput, E: fmt::Debug + fmt::Display> MainOutput for Result<T, E> {
     fn exit(self, cmd_name: &'static str, debug: bool) -> ! {
         match self {
@@ -305,7 +322,7 @@ pub fn yesno(prompt: &str) -> Result<bool> {
 #[cfg(feature = "tokio")]
 /// Report an error to `night`, my personal status monitor system.
 ///
-/// Only works if called on mercredi as a user who has access to `nightd report` via sudo.
+/// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
 pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
     let mut cmd = Command::new("sudo");
     cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg(path);
@@ -321,7 +338,7 @@ pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::proces
 
 /// Report an error to `night`, my personal status monitor system.
 ///
-/// Only works if called on mercredi as a user who has access to `nightd report` via sudo.
+/// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
 pub fn night_report_sync(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
     let mut cmd = std::process::Command::new("sudo");
     cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg(path);

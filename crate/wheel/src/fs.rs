@@ -45,6 +45,10 @@ pub use {
     },
     tokio::fs::DirEntry,
 };
+#[cfg(feature = "rocket")] use rocket::{
+    request::Request,
+    response::Responder,
+};
 #[cfg(feature = "serde_json")] use {
     serde::{
         Deserialize,
@@ -170,6 +174,13 @@ impl DerefMut for File {
     }
 }
 
+#[cfg(feature = "rocket")]
+impl<'r> Responder<'r, 'static> for File {
+    fn respond_to(self, request: &'r Request<'_>) -> rocket::response::Result<'static> {
+        self.inner.respond_to(request)
+    }
+}
+
 /// A wrapper around [`tokio::fs::canonicalize`].
 pub async fn canonicalize(path: impl AsRef<Path>) -> Result<PathBuf> {
     let path = path.as_ref();
@@ -181,6 +192,13 @@ pub async fn copy(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<u64> {
     let from = from.as_ref();
     let to = to.as_ref();
     tokio::fs::copy(from, to).await.at2(from, to)
+}
+
+/// Like [`copy`] but return [`io::ErrorKind::AlreadyExists`] if `to` exists.
+pub async fn copy_new(from: impl AsRef<Path>, to: impl AsRef<Path>) -> Result<u64> {
+    let from = from.as_ref();
+    let to = to.as_ref();
+    tokio::io::copy(&mut File::open(from).await?, &mut File::create_new(to).await?).await.at2(from, to)
 }
 
 /// A wrapper around [`tokio::fs::create_dir`].

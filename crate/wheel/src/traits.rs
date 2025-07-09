@@ -532,7 +532,13 @@ impl IsNetworkError for io::Error {
             | io::ErrorKind::NetworkUnreachable
             | io::ErrorKind::TimedOut
             | io::ErrorKind::UnexpectedEof
-        )
+        ) || {
+            // Some error sources (e.g. tungstenite) don't provide structured information about I/O errors, so we need to check the Display impl
+            let display = self.to_string();
+            display == "No such host is known. (os error 11001)"
+            || display == "failed to lookup address information: Temporary failure in name resolution"
+            || display == "failed to lookup address information: No address associated with hostname"
+        }
     }
 }
 
@@ -544,7 +550,7 @@ impl IsNetworkError for async_proto::ReadError {
             async_proto::ReadErrorKind::Io(e) => e.is_network_error(),
             #[cfg(feature = "tungstenite021")] async_proto::ReadErrorKind::Tungstenite021(e) => e.is_network_error(),
             #[cfg(feature = "tungstenite024")] async_proto::ReadErrorKind::Tungstenite024(e) => e.is_network_error(),
-            #[cfg(feature = "tungstenite026")] async_proto::ReadErrorKind::Tungstenite026(e) => e.is_network_error(),
+            #[cfg(feature = "tungstenite027")] async_proto::ReadErrorKind::Tungstenite027(e) => e.is_network_error(),
             _ => false,
         }
     }
@@ -557,7 +563,7 @@ impl IsNetworkError for async_proto::WriteError {
             async_proto::WriteErrorKind::Io(e) => e.is_network_error(),
             #[cfg(feature = "tungstenite021")] async_proto::WriteErrorKind::Tungstenite021(e) => e.is_network_error(),
             #[cfg(feature = "tungstenite024")] async_proto::WriteErrorKind::Tungstenite024(e) => e.is_network_error(),
-            #[cfg(feature = "tungstenite026")] async_proto::WriteErrorKind::Tungstenite026(e) => e.is_network_error(),
+            #[cfg(feature = "tungstenite027")] async_proto::WriteErrorKind::Tungstenite027(e) => e.is_network_error(),
             _ => false,
         }
     }
@@ -598,13 +604,7 @@ impl IsNetworkError for tungstenite021::Error {
     fn is_network_error(&self) -> bool {
         match self {
             Self::Http(resp) => resp.status().is_server_error(),
-            Self::Io(e) => {
-                // Tungstenite does not provide structured information about I/O errors, so we need to check the Display impl
-                let display = e.to_string();
-                display == "No such host is known. (os error 11001)"
-                || display == "failed to lookup address information: Temporary failure in name resolution"
-                || e.is_network_error()
-            }
+            Self::Io(e) => e.is_network_error(),
             Self::Protocol(tungstenite021::error::ProtocolError::ResetWithoutClosingHandshake) => true,
             _ => false,
         }
@@ -616,32 +616,20 @@ impl IsNetworkError for tungstenite024::Error {
     fn is_network_error(&self) -> bool {
         match self {
             Self::Http(resp) => resp.status().is_server_error(),
-            Self::Io(e) => {
-                // Tungstenite does not provide structured information about I/O errors, so we need to check the Display impl
-                let display = e.to_string();
-                display == "No such host is known. (os error 11001)"
-                || display == "failed to lookup address information: Temporary failure in name resolution"
-                || e.is_network_error()
-            }
+            Self::Io(e) => e.is_network_error(),
             Self::Protocol(tungstenite024::error::ProtocolError::ResetWithoutClosingHandshake) => true,
             _ => false,
         }
     }
 }
 
-#[cfg(feature = "tungstenite026")]
-impl IsNetworkError for tungstenite026::Error {
+#[cfg(feature = "tungstenite027")]
+impl IsNetworkError for tungstenite027::Error {
     fn is_network_error(&self) -> bool {
         match self {
             Self::Http(resp) => resp.status().is_server_error(),
-            Self::Io(e) => {
-                // Tungstenite does not provide structured information about I/O errors, so we need to check the Display impl
-                let display = e.to_string();
-                display == "No such host is known. (os error 11001)"
-                || display == "failed to lookup address information: Temporary failure in name resolution"
-                || e.is_network_error()
-            }
-            Self::Protocol(tungstenite026::error::ProtocolError::ResetWithoutClosingHandshake) => true,
+            Self::Io(e) => e.is_network_error(),
+            Self::Protocol(tungstenite027::error::ProtocolError::ResetWithoutClosingHandshake) => true,
             _ => false,
         }
     }

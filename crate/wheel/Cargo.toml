@@ -28,7 +28,7 @@ tungstenite024 = ["async-proto?/tokio-tungstenite024", "dep:tungstenite024"]
 tungstenite027 = ["async-proto?/tokio-tungstenite027", "dep:tungstenite027"]
 
 [dependencies]
-async-proto = { version = "0.25", optional = true }
+async-proto = { version = "0.26", optional = true }
 async-trait = "0.1"
 chrono = { version = "0.4", default-features = false, features = ["now"], optional = true }
 clap = "4" # used in proc macro
@@ -58,4 +58,4 @@ tokio = { version = "1", features = ["fs", "io-util", "macros", "parking_lot", "
 tokio = { version = "1", features = ["fs", "io-util", "macros", "parking_lot", "process", "rt-multi-thread", "sync"], optional = true }
 
 [target.'cfg(all(target_os = "linux", not(doc)))'.dependencies]
-gio = { version = "0.20.9", optional = true }
+gio = { version = "0.21", optional = true }

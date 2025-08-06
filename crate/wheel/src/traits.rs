@@ -603,6 +603,7 @@ impl IsNetworkError for reqwest::Error {
 impl IsNetworkError for tungstenite021::Error {
     fn is_network_error(&self) -> bool {
         match self {
+            Self::AlreadyClosed => true, // while the tungstenite docs describe this as a programmer error, it is unavoidable when the WebSocket is handled as a concurrent split sink/stream pair
             Self::Http(resp) => resp.status().is_server_error(),
             Self::Io(e) => e.is_network_error(),
             Self::Protocol(tungstenite021::error::ProtocolError::ResetWithoutClosingHandshake) => true,
@@ -615,6 +616,7 @@ impl IsNetworkError for tungstenite021::Error {
 impl IsNetworkError for tungstenite024::Error {
     fn is_network_error(&self) -> bool {
         match self {
+            Self::AlreadyClosed => true, // while the tungstenite docs describe this as a programmer error, it is unavoidable when the WebSocket is handled as a concurrent split sink/stream pair
             Self::Http(resp) => resp.status().is_server_error(),
             Self::Io(e) => e.is_network_error(),
             Self::Protocol(tungstenite024::error::ProtocolError::ResetWithoutClosingHandshake) => true,
@@ -627,6 +629,7 @@ impl IsNetworkError for tungstenite024::Error {
 impl IsNetworkError for tungstenite027::Error {
     fn is_network_error(&self) -> bool {
         match self {
+            Self::AlreadyClosed => true, // while the tungstenite docs describe this as a programmer error, it is unavoidable when the WebSocket is handled as a concurrent split sink/stream pair
             Self::Http(resp) => resp.status().is_server_error(),
             Self::Io(e) => e.is_network_error(),
             Self::Protocol(tungstenite027::error::ProtocolError::ResetWithoutClosingHandshake) => true,

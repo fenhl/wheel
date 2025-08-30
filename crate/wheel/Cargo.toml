@@ -21,8 +21,10 @@ warnings = "deny"
 default = ["futures", "tokio"]
 gui = ["dark-light", "gio", "iced"]
 racetime = ["dep:racetime", "reqwest", "tungstenite027"]
+reqwest = ["futures", "dep:reqwest", "tokio", "dep:tokio-util"]
 rocket = ["dep:rocket", "dep:rocket-util"]
 serde_json = ["serde", "dep:serde_json", "dep:serde_json_path_to_error"]
+tokio = ["dep:tokio"]
 tungstenite021 = ["async-proto?/tokio-tungstenite021", "dep:tungstenite021"]
 tungstenite024 = ["async-proto?/tokio-tungstenite024", "dep:tungstenite024"]
 tungstenite027 = ["async-proto?/tokio-tungstenite027", "dep:tungstenite027"]
@@ -38,17 +40,18 @@ iced = { version = "0.13.1", optional = true }
 itertools = "0.14"
 pyo3 = { version = "0.25", optional = true }
 racetime = { version = "0.27", optional = true }
-reqwest = { version = "0.12", default-features = false, optional = true }
+reqwest = { version = "0.12", default-features = false, features = ["stream"], optional = true }
 rocket = { version = "0.5", optional = true } # used in proc macro
 rocket-util = { git = "https://github.com/fenhl/rocket-util", branch = "main", optional = true }
 serde = { version = "1", optional = true }
 serde_json = { version = "1", optional = true }
 serde_json_path_to_error = { version = "0.1", optional = true }
 thiserror = "2"
+tokio-util = { version = "0.7", features = ["io"], optional = true }
 tungstenite021 = { package = "tungstenite", version = "0.21", optional = true }
 tungstenite024 = { package = "tungstenite", version = "0.24", optional = true }
 tungstenite027 = { package = "tungstenite", version = "0.27", optional = true }
-wheel-derive = { path = "../wheel-derive", version = "=0.15.0" }
+wheel-derive = { path = "../wheel-derive", version = "=0.15.1" }
 
 [target.'cfg(tokio_unstable)'.dependencies]
 console-subscriber = { version = "0.4", features = ["parking_lot"] } # used in proc macro

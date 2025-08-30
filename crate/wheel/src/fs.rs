@@ -20,10 +20,6 @@ use {
             Poll,
         },
     },
-    futures::stream::{
-        self,
-        Stream,
-    },
     tokio::{
         fs::OpenOptions,
         io::{
@@ -44,6 +40,10 @@ pub use {
         Permissions,
     },
     tokio::fs::DirEntry,
+};
+#[cfg(feature = "futures")] use futures::stream::{
+    self,
+    Stream,
 };
 #[cfg(feature = "rocket")] use rocket::{
     request::Request,

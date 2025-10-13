@@ -576,13 +576,13 @@ impl IsNetworkError for io::Error {
             | io::ErrorKind::NetworkUnreachable
             | io::ErrorKind::TimedOut
             | io::ErrorKind::UnexpectedEof
-        ) || {
+        ) || matches!(&*self.to_string(),
             // Some error sources (e.g. tungstenite) don't provide structured information about I/O errors, so we need to check the Display impl
-            let display = self.to_string();
-            display == "No such host is known. (os error 11001)"
-            || display == "failed to lookup address information: Temporary failure in name resolution"
-            || display == "failed to lookup address information: No address associated with hostname"
-        }
+            | "No such host is known. (os error 11001)"
+            | "failed to lookup address information: Temporary failure in name resolution"
+            | "failed to lookup address information: No address associated with hostname"
+            | "failed to lookup address information: nodename nor servname provided, or not known"
+        )
     }
 }
 

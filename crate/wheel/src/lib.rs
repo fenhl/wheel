@@ -109,9 +109,9 @@ impl fmt::Display for IoErrorContext {
 #[derive(Debug, Error)]
 #[cfg_attr(feature = "rocket", derive(rocket_util::Error))]
 pub enum Error {
-    #[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))] #[error(transparent)] HeaderToStr(#[from] reqwest::header::ToStrError),
-    #[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))] #[error(transparent)] ParseInt(#[from] std::num::ParseIntError),
-    #[cfg(any(all(feature = "reqwest", feature = "serde_json"), all(feature = "chrono", feature = "reqwest", feature = "tokio")))] #[error(transparent)] Reqwest(#[from] reqwest::Error),
+    #[cfg(all(feature = "chrono", feature = "reqwest"))] #[error(transparent)] HeaderToStr(#[from] reqwest::header::ToStrError),
+    #[cfg(all(feature = "chrono", feature = "reqwest"))] #[error(transparent)] ParseInt(#[from] std::num::ParseIntError),
+    #[cfg(any(all(feature = "reqwest", feature = "serde_json"), all(feature = "chrono", feature = "reqwest")))] #[error(transparent)] Reqwest(#[from] reqwest::Error),
     /// A subprocess exited with a non-success status. Output information is available.
     #[error("command `{name}` exited with {}", .output.status)]
     CommandExit {
@@ -126,7 +126,7 @@ pub enum Error {
         name: Cow<'static, str>,
         status: std::process::ExitStatus,
     },
-    #[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))]
+    #[cfg(all(feature = "chrono", feature = "reqwest"))]
     #[error("x-ratelimit-reset header is out of range for chrono::DateTime")]
     InvalidDateTime,
     #[error("{context}: {inner}")]
@@ -152,7 +152,7 @@ pub enum Error {
         /// The path or command where this error occurred, if known.
         context: IoErrorContext,
     },
-    #[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))]
+    #[cfg(all(feature = "chrono", feature = "reqwest"))]
     #[error("missing x-ratelimit-reset header in GitHub error response")]
     MissingRateLimitResetHeader,
     #[cfg(all(feature = "reqwest", feature = "serde_json"))]
@@ -177,7 +177,7 @@ pub enum Error {
         headers: reqwest::header::HeaderMap,
         text: reqwest::Result<String>,
     },
-    #[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))]
+    #[cfg(all(feature = "chrono", feature = "reqwest"))]
     #[error("attempted to send GitHub API request with streamed body")]
     UncloneableGitHubRequest,
 }

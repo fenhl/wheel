@@ -19,8 +19,12 @@ use {
     std::fmt,
     chrono::prelude::*,
 };
+#[cfg(feature = "reqwest")] use {
+    futures::stream::TryStreamExt as _,
+    tokio_util::io::StreamReader,
+};
 #[cfg(all(feature = "reqwest", feature = "serde_json"))] use serde::de::DeserializeOwned;
-#[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))] use {
+#[cfg(all(feature = "chrono", feature = "reqwest"))] use {
     std::time::Duration,
     tokio::time::sleep,
 };
@@ -406,6 +410,18 @@ impl SyncCommandOutputExt for std::process::Child {
     }
 }
 
+impl SyncCommandOutputExt for std::process::Output {
+    type Ok = std::process::Output;
+
+    fn check(self, name: impl Into<Cow<'static, str>> + Clone) -> Result<Self::Ok> {
+        if self.status.success() {
+            Ok(self)
+        } else {
+            Err(Error::CommandExit { name: name.into(), output: self })
+        }
+    }
+}
+
 impl SyncCommandOutputExt for std::process::ExitStatus {
     type Ok = std::process::ExitStatus;
 
@@ -418,7 +434,7 @@ impl SyncCommandOutputExt for std::process::ExitStatus {
     }
 }
 
-#[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))]
+#[cfg(all(feature = "chrono", feature = "reqwest"))]
 /// Adds a `send_github` method which automatically handles the GitHub REST API's rate limits.
 #[async_trait]
 pub trait RequestBuilderExt {
@@ -426,7 +442,7 @@ pub trait RequestBuilderExt {
     async fn send_github(self, verbose: bool) -> Result<reqwest::Response, Error>;
 }
 
-#[cfg(all(feature = "chrono", feature = "reqwest", feature = "tokio"))]
+#[cfg(all(feature = "chrono", feature = "reqwest"))]
 #[async_trait]
 impl RequestBuilderExt for reqwest::RequestBuilder {
     /// Like `send` but automatically handles the GitHub REST API's rate limits.
@@ -481,6 +497,14 @@ pub trait ReqwestResponseExt: Sized {
     #[cfg(feature = "serde_json")]
     /// Like `json` but include response text in the error.
     async fn json_with_text_in_error<T: DeserializeOwned>(self) -> Result<T>;
+
+    /// Downloads the response body to the file system.
+    ///
+    /// Returns the size of the downloaded file in bytes.
+    fn download<P: AsRef<Path>>(self, path: P) -> impl Future<Output = Result<u64>> + use<Self, P>;
+
+    /// Like [`download`] but return [`io::ErrorKind::AlreadyExists`] if the file exists.
+    fn download_new<P: AsRef<Path>>(self, path: P) -> impl Future<Output = Result<u64>> + use<Self, P>;
 }
 
 #[cfg(feature = "reqwest")]
@@ -501,6 +525,26 @@ impl ReqwestResponseExt for reqwest::Response {
     async fn json_with_text_in_error<T: DeserializeOwned>(self) -> Result<T> {
         let text = self.text().await?;
         serde_json_path_to_error::from_str(&text).map_err(|inner| Error::ResponseJsonPathToError { inner, text })
+    }
+
+    fn download<P: AsRef<Path>>(self, path: P) -> impl Future<Output = Result<u64>> + use<P> {
+        let path = path.as_ref().to_owned();
+        async {
+            tokio::io::copy_buf(
+                &mut StreamReader::new(self.bytes_stream().map_err(crate::io_error_from_reqwest)),
+                &mut crate::fs::File::create(&path).await?,
+            ).await.at(path)
+        }
+    }
+
+    fn download_new<P: AsRef<Path>>(self, path: P) -> impl Future<Output = Result<u64>> + use<P> {
+        let path = path.as_ref().to_owned();
+        async {
+            tokio::io::copy_buf(
+                &mut StreamReader::new(self.bytes_stream().map_err(crate::io_error_from_reqwest)),
+                &mut crate::fs::File::create_new(&path).await?,
+            ).await.at(path)
+        }
     }
 }
 
@@ -532,13 +576,13 @@ impl IsNetworkError for io::Error {
             | io::ErrorKind::NetworkUnreachable
             | io::ErrorKind::TimedOut
             | io::ErrorKind::UnexpectedEof
-        ) || {
+        ) || matches!(&*self.to_string(),
             // Some error sources (e.g. tungstenite) don't provide structured information about I/O errors, so we need to check the Display impl
-            let display = self.to_string();
-            display == "No such host is known. (os error 11001)"
-            || display == "failed to lookup address information: Temporary failure in name resolution"
-            || display == "failed to lookup address information: No address associated with hostname"
-        }
+            | "No such host is known. (os error 11001)"
+            | "failed to lookup address information: Temporary failure in name resolution"
+            | "failed to lookup address information: No address associated with hostname"
+            | "failed to lookup address information: nodename nor servname provided, or not known"
+        )
     }
 }
 
@@ -603,6 +647,7 @@ impl IsNetworkError for reqwest::Error {
 impl IsNetworkError for tungstenite021::Error {
     fn is_network_error(&self) -> bool {
         match self {
+            Self::AlreadyClosed => true, // while the tungstenite docs describe this as a programmer error, it is unavoidable when the WebSocket is handled as a concurrent split sink/stream pair
             Self::Http(resp) => resp.status().is_server_error(),
             Self::Io(e) => e.is_network_error(),
             Self::Protocol(tungstenite021::error::ProtocolError::ResetWithoutClosingHandshake) => true,
@@ -615,6 +660,7 @@ impl IsNetworkError for tungstenite021::Error {
 impl IsNetworkError for tungstenite024::Error {
     fn is_network_error(&self) -> bool {
         match self {
+            Self::AlreadyClosed => true, // while the tungstenite docs describe this as a programmer error, it is unavoidable when the WebSocket is handled as a concurrent split sink/stream pair
             Self::Http(resp) => resp.status().is_server_error(),
             Self::Io(e) => e.is_network_error(),
             Self::Protocol(tungstenite024::error::ProtocolError::ResetWithoutClosingHandshake) => true,
@@ -627,6 +673,7 @@ impl IsNetworkError for tungstenite024::Error {
 impl IsNetworkError for tungstenite027::Error {
     fn is_network_error(&self) -> bool {
         match self {
+            Self::AlreadyClosed => true, // while the tungstenite docs describe this as a programmer error, it is unavoidable when the WebSocket is handled as a concurrent split sink/stream pair
             Self::Http(resp) => resp.status().is_server_error(),
             Self::Io(e) => e.is_network_error(),
             Self::Protocol(tungstenite027::error::ProtocolError::ResetWithoutClosingHandshake) => true,

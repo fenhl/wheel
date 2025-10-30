@@ -503,7 +503,7 @@ pub trait ReqwestResponseExt: Sized {
     /// Returns the size of the downloaded file in bytes.
     fn download<P: AsRef<Path>>(self, path: P) -> impl Future<Output = Result<u64>> + use<Self, P>;
 
-    /// Like [`download`] but return [`io::ErrorKind::AlreadyExists`] if the file exists.
+    /// Like [`Self::download`] but return [`io::ErrorKind::AlreadyExists`] if the file exists.
     fn download_new<P: AsRef<Path>>(self, path: P) -> impl Future<Output = Result<u64>> + use<Self, P>;
 }
 

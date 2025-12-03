@@ -10,6 +10,9 @@ function ThrowOnNativeFailure {
 cargo check
 ThrowOnNativeFailure
 
+cargo msrv --manifest-path=crate/wheel/Cargo.toml verify
+ThrowOnNativeFailure
+
 cargo check --manifest-path=crate/wheel/Cargo.toml --no-default-features
 ThrowOnNativeFailure
 

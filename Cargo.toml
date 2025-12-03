@@ -7,3 +7,4 @@ resolver = "2"
 version = "0.15.1"
 authors = ["Fenhl <fenhl@fenhl.net>"]
 edition = "2024"
+rust-version = "1.91" # nixpkgs stable

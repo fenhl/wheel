@@ -3,6 +3,7 @@ name = "wheel"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 description = "Rust boilerplate. Reinventing the wheel so you don't have to."
 
 [lints.rust]

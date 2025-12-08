@@ -40,7 +40,10 @@ pub use wheel_derive::{
 };
 
 // used in proc macro:
-#[doc(hidden)] pub use clap;
+#[doc(hidden)] pub use {
+    clap,
+    clap_complete,
+};
 #[cfg(tokio_unstable)] #[doc(hidden)] pub use console_subscriber;
 #[cfg(feature = "rocket")] #[doc(hidden)] pub use rocket;
 #[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;

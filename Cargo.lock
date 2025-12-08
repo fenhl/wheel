@@ -796,6 +796,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_complete"
+version = "4.5.61"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39615915e2ece2550c0149addac32fb5bd312c657f43845bb9088cb9c8a7c992"
+dependencies = [
+ "clap",
+ "clap_lex",
+ "is_executable",
+ "shlex",
+]
+
+[[package]]
 name = "clap_lex"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2690,6 +2702,15 @@ dependencies = [
  "hermit-abi",
  "libc",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "is_executable"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baabb8b4867b26294d818bf3f651a454b6901431711abb96e296245888d6e8c4"
+dependencies = [
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -6247,12 +6268,13 @@ dependencies = [
 
 [[package]]
 name = "wheel"
-version = "0.15.1"
+version = "0.15.2"
 dependencies = [
  "async-proto",
  "async-trait",
  "chrono",
  "clap",
+ "clap_complete",
  "console-subscriber",
  "dark-light 2.0.0",
  "futures",
@@ -6278,7 +6300,7 @@ dependencies = [
 
 [[package]]
 name = "wheel-derive"
-version = "0.15.1"
+version = "0.15.2"
 dependencies = [
  "itertools",
  "proc-macro2",

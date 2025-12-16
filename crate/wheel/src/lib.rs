@@ -49,6 +49,7 @@ pub use wheel_derive::{
 #[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;
 
 #[cfg(feature = "tokio")] pub mod fs;
+#[cfg(feature = "github")] pub mod github;
 #[cfg(feature = "gui")] pub mod gui;
 pub mod traits;
 
@@ -112,6 +113,7 @@ impl fmt::Display for IoErrorContext {
 #[derive(Debug, Error)]
 #[cfg_attr(feature = "rocket", derive(rocket_util::Error))]
 pub enum Error {
+    #[cfg(feature = "github")] #[error(transparent)] GitHubAuth(#[from] github_app_auth::AuthError),
     #[cfg(all(feature = "chrono", feature = "reqwest"))] #[error(transparent)] HeaderToStr(#[from] reqwest::header::ToStrError),
     #[cfg(all(feature = "chrono", feature = "reqwest"))] #[error(transparent)] ParseInt(#[from] std::num::ParseIntError),
     #[cfg(any(all(feature = "reqwest", feature = "serde_json"), all(feature = "chrono", feature = "reqwest")))] #[error(transparent)] Reqwest(#[from] reqwest::Error),

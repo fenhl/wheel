@@ -129,7 +129,7 @@ pub fn lib(_: TokenStream, item: TokenStream) -> TokenStream {
 /// Annotate your `main` function with this.
 ///
 /// * It can be a `fn` or an `async fn`. In the latter case, `tokio`'s threaded runtime will be used. (This requires the `tokio` feature, which is on by default.)
-/// * It may take a single parameter that implements `clap::Parser`. If it does, command-line arguments will be parsed into it.
+/// * It may take a single parameter that implements both `clap::Parser` and `clap::CommandFactory` (an implementation of which is included when deriving `clap::Parser`). If it does, command-line arguments will be parsed into it.
 ///     * If the parameter is omitted, a simple argument parser will be used to add support for `--help` and `--version`, and to reject any other arguments.
 /// * It must return `()` or a `Result<(), E>`, for some `E` that implements `Display`.
 /// * Any error returned from argument parsing or the function body will be displayed and the process will exit with status code `1`.
@@ -261,6 +261,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
                 None => quote!(::wheel::IsVerbose::is_verbose(&args)),
             };
             let parse_args = quote_spanned! {arg.ty.span()=>
+                ::wheel::clap_complete::CompleteEnv::with_factory(<#arg_ty as ::wheel::clap::CommandFactory>::command).complete();
                 let args = <#arg_ty as ::wheel::clap::Parser>::parse();
                 let debug = #debug;
             };
@@ -273,14 +274,17 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
             let command = quote!(::wheel::clap::Command::new(env!("CARGO_PKG_NAME")).version(env!("CARGO_PKG_VERSION")));
             let parse_args = match debug {
                 Some(true) => quote! {
+                    ::wheel::clap_complete::CompleteEnv::with_factory(|| #command).complete();
                     #command.get_matches();
                     let debug = true;
                 },
                 Some(false) => quote! {
+                    ::wheel::clap_complete::CompleteEnv::with_factory(|| #command).complete();
                     #command.get_matches();
                     let debug = false;
                 },
                 None => quote! {
+                    ::wheel::clap_complete::CompleteEnv::with_factory(|| #command.arg(::wheel::clap::Arg::new("verbose").short('v').long("verbose").help("Display debug info if an error occurs"))).complete();
                     let matches = #command.arg(::wheel::clap::Arg::new("verbose").short('v').long("verbose").help("Display debug info if an error occurs")).get_matches();
                     let debug = matches.is_present("verbose");
                 },

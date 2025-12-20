@@ -40,12 +40,16 @@ pub use wheel_derive::{
 };
 
 // used in proc macro:
-#[doc(hidden)] pub use clap;
+#[doc(hidden)] pub use {
+    clap,
+    clap_complete,
+};
 #[cfg(tokio_unstable)] #[doc(hidden)] pub use console_subscriber;
 #[cfg(feature = "rocket")] #[doc(hidden)] pub use rocket;
 #[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;
 
 #[cfg(feature = "tokio")] pub mod fs;
+#[cfg(feature = "github")] pub mod github;
 #[cfg(feature = "gui")] pub mod gui;
 pub mod traits;
 
@@ -109,9 +113,9 @@ impl fmt::Display for IoErrorContext {
 #[derive(Debug, Error)]
 #[cfg_attr(feature = "rocket", derive(rocket_util::Error))]
 pub enum Error {
+    #[cfg(feature = "github")] #[error(transparent)] GitHubAuth(#[from] github_app_auth::AuthError),
     #[cfg(all(feature = "chrono", feature = "reqwest"))] #[error(transparent)] HeaderToStr(#[from] reqwest::header::ToStrError),
     #[cfg(all(feature = "chrono", feature = "reqwest"))] #[error(transparent)] ParseInt(#[from] std::num::ParseIntError),
-    #[cfg(any(all(feature = "reqwest", feature = "serde_json"), all(feature = "chrono", feature = "reqwest")))] #[error(transparent)] Reqwest(#[from] reqwest::Error),
     /// A subprocess exited with a non-success status. Output information is available.
     #[error("command `{name}` exited with {}", .output.status)]
     CommandExit {
@@ -155,6 +159,9 @@ pub enum Error {
     #[cfg(all(feature = "chrono", feature = "reqwest"))]
     #[error("missing x-ratelimit-reset header in GitHub error response")]
     MissingRateLimitResetHeader,
+    #[cfg(any(all(feature = "reqwest", feature = "serde_json"), all(feature = "chrono", feature = "reqwest")))]
+    #[error("HTTP error{}: {}", if let Some(url) = .0.url() { format!(" at {url}") } else { String::default() }, .0)]
+    Reqwest(#[from] reqwest::Error),
     #[cfg(all(feature = "reqwest", feature = "serde_json"))]
     #[error("{inner}, body:\n\n{text}")]
     ResponseJson {
@@ -170,7 +177,7 @@ pub enum Error {
         text: String,
     },
     #[cfg(feature = "reqwest")]
-    #[error("{inner}, body:\n\n{}", .text.as_ref().map(|text| text.clone()).unwrap_or_else(|e| e.to_string()))]
+    #[error("HTTP error{}: {inner}, body:\n\n{}", if let Some(url) = .inner.url() { format!(" at {url}") } else { String::default() }, .text.as_ref().map(|text| text.clone()).unwrap_or_else(|e| e.to_string()))]
     ResponseStatus {
         #[source]
         inner: reqwest::Error,

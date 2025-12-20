@@ -4,6 +4,7 @@ default-members = ["crate/wheel"]
 resolver = "2"
 
 [workspace.package]
-version = "0.15.1"
+version = "0.15.2"
 authors = ["Fenhl <fenhl@fenhl.net>"]
 edition = "2024"
+rust-version = "1.91" # nixpkgs stable

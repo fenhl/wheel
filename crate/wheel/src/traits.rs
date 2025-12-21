@@ -523,7 +523,8 @@ impl ReqwestResponseExt for reqwest::Response {
 
     #[cfg(feature = "serde_json")]
     async fn json_with_text_in_error<T: DeserializeOwned>(self) -> Result<T> {
-        let text = self.text().await?;
+        let url = self.url().clone();
+        let text = self.text().await.map_err(|e| if e.url().is_some() { e } else { e.with_url(url) })?;
         serde_json_path_to_error::from_str(&text).map_err(|inner| Error::ResponseJsonPathToError { inner, text })
     }
 

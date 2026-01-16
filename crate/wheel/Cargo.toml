@@ -20,7 +20,7 @@ warnings = "deny"
 
 [features]
 default = ["futures", "tokio"]
-github = ["dep:github-app-auth", "reqwest", "reqwest/blocking", "dep:semver", "dep:url"]
+github = ["chrono", "dep:github-app-auth", "reqwest", "reqwest/blocking", "dep:semver", "serde_json", "dep:url"]
 gui = ["dark-light", "gio", "iced"]
 racetime = ["dep:racetime", "reqwest", "tungstenite028"]
 reqwest = ["futures", "dep:reqwest", "tokio", "dep:tokio-util"]

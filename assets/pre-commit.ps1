@@ -16,6 +16,9 @@ ThrowOnNativeFailure
 cargo check --manifest-path=crate/wheel/Cargo.toml --no-default-features
 ThrowOnNativeFailure
 
+cargo check --manifest-path=crate/wheel/Cargo.toml --no-default-features --features=github
+ThrowOnNativeFailure
+
 cargo check --manifest-path=crate/wheel/Cargo.toml --no-default-features --features=racetime
 ThrowOnNativeFailure
 

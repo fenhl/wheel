@@ -12,28 +12,28 @@ use {
 /// A function which can be used in [`iced::Application::theme`] or [`iced::Daemon::theme`] and returns the built-in light or dark theme based on system preferences.
 ///
 /// Compared to iced's `auto-detect-theme` feature, this function adds compatibility with GNOME.
-pub fn theme() -> Theme {
+pub fn theme() -> Option<Theme> {
     //TODO automatically update on system theme change (https://github.com/fenhl/wheel/issues/1)
     #[cfg(all(target_os = "linux", not(doc)))] {
         let settings = gio::Settings::new("org.gnome.desktop.interface");
         if settings.settings_schema().map_or(false, |schema| schema.has_key("color-scheme")) {
             match settings.string("color-scheme").as_str() {
-                "prefer-light" => return Theme::Light,
-                "prefer-dark" => return Theme::Dark,
+                "prefer-light" => return Some(Theme::Light),
+                "prefer-dark" => return Some(Theme::Dark),
                 _ => {}
             }
         }
     }
     match dark_light::detect() {
-        Ok(Dark) => Theme::Dark,
-        Ok(Light) => Theme::Light,
+        Ok(Dark) => Some(Theme::Dark),
+        Ok(Light) => Some(Theme::Light),
         Ok(dark_light::Mode::Unspecified) => {
-            #[cfg(debug_assertions)] { eprintln!("got unspecified system theme") }
-            Theme::Light
+            #[cfg(debug_assertions)] { eprintln!("got unspecified system theme, letting iced pick") }
+            None
         }
         #[cfg_attr(not(debug_assertions), allow(unused))] Err(e) => {
-            #[cfg(debug_assertions)] { eprintln!("error determining system theme: {e} ({e:?})") }
-            Theme::Light
+            #[cfg(debug_assertions)] { eprintln!("error determining system theme: {e} ({e:?}), letting iced pick") }
+            None
         }
     }
 }

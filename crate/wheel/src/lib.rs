@@ -22,6 +22,7 @@ use {
 };
 pub use wheel_derive::{
     FromArc,
+    IsNetworkError,
     IsVerbose,
     bin,
     lib,

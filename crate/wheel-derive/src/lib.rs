@@ -61,6 +61,50 @@ pub fn from_arc(input: TokenStream) -> TokenStream {
     })
 }
 
+/// Implements the `IsNetworkError` trait for an enum.
+///
+/// By default, a variant with a single field forwards that field's implementation. Other variants have no default and will generate a compile error.
+///
+/// The behavior for any variant can be customized to return a constant value by setting `#[is_network_error = true]` or `#[is_network_error = false]`.
+#[proc_macro_derive(IsNetworkError, attributes(is_network_error))]
+pub fn is_network_error(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let ty = input.ident;
+    let arms = match input.data {
+        Data::Enum(DataEnum { variants, .. }) => variants.iter()
+            .map(|variant| {
+                let variant_name = &variant.ident;
+                if let Some(attr) = variant.attrs.iter().find(|attr| attr.path().get_ident().map_or(false, |ident| ident == "is_network_error")) {
+                    let value = match attr.meta.require_name_value() {
+                        Ok(name_value) => match &name_value.value {
+                            Expr::Lit(ExprLit { attrs, lit: Lit::Bool(lit) }) if attrs.is_empty() => lit,
+                            _ => return quote_spanned!(name_value.span()=> compile_error!("unexpected value of #[is_network_error] attribute");),
+                        },
+                        Err(e) => return e.into_compile_error(),
+                    };
+                    quote! {
+                        #ty::#variant_name(_) => #value,
+                    }
+                } else {
+                    quote! {
+                        #ty::#variant_name(e) => e.is_network_error(),
+                    }
+                }
+            })
+            .collect_vec(),
+        _ => return quote!(compile_error!("derive(IsNetworkError) is only implemented for enums");).into(),
+    };
+    TokenStream::from(quote! {
+        impl ::wheel::IsNetworkError for #ty {
+            fn is_network_error(&self) -> bool {
+                match self {
+                    #(#arms)*
+                }
+            }
+        }
+    })
+}
+
 /// Implements the `IsVerbose` trait for a struct with a `verbose: bool` field.
 ///
 /// This trait is used with `#[wheel::main(verbose_debug)]`.

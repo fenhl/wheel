@@ -593,6 +593,9 @@ impl IsNetworkError for async_proto::ReadError {
         match &self.kind {
             async_proto::ReadErrorKind::EndOfStream => true,
             async_proto::ReadErrorKind::Io(e) => e.is_network_error(),
+            #[cfg(feature = "tungstenite021")] async_proto::ReadErrorKind::MessageKind021(msg) => msg.is_close(),
+            #[cfg(feature = "tungstenite024")] async_proto::ReadErrorKind::MessageKind024(msg) => msg.is_close(),
+            #[cfg(feature = "tungstenite028")] async_proto::ReadErrorKind::MessageKind028(msg) => msg.is_close(),
             #[cfg(feature = "tungstenite021")] async_proto::ReadErrorKind::Tungstenite021(e) => e.is_network_error(),
             #[cfg(feature = "tungstenite024")] async_proto::ReadErrorKind::Tungstenite024(e) => e.is_network_error(),
             #[cfg(feature = "tungstenite028")] async_proto::ReadErrorKind::Tungstenite028(e) => e.is_network_error(),

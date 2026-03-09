@@ -14,6 +14,7 @@ use {
         process::Stdio,
     },
     itertools::Itertools as _,
+    noisy_float::prelude::*,
     thiserror::Error,
     crate::traits::{
         IoResultExt as _,
@@ -328,7 +329,7 @@ pub fn yesno(prompt: &str) -> Result<bool> {
 }
 
 #[cfg(feature = "tokio")]
-/// Report an error to `night`, my personal status monitor system.
+/// Report an error to `night`, my personal status monitor system, with a base priority of 29.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
 pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
@@ -344,12 +345,45 @@ pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::proces
     child.check("sudo -u fenhl /opt/night/bin/nightd report").await
 }
 
+#[cfg(feature = "tokio")]
 /// Report an error to `night`, my personal status monitor system.
+///
+/// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
+pub async fn night_report_priority(path: &str, extra: Option<&str>, base_priority: N64) -> Result<std::process::Output> {
+    let mut cmd = Command::new("sudo");
+    cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg("--base-priority").arg(base_priority.to_string()).arg(path);
+    if extra.is_some() {
+        cmd.stdin(Stdio::piped());
+    }
+    let mut child = cmd.spawn().at_command("sudo -u fenhl /opt/night/bin/nightd report")?;
+    if let Some(extra) = extra {
+        child.stdin.take().expect("configured above").write_all(extra.as_ref()).await.at_command("sudo -u fenhl /opt/night/bin/nightd report")?;
+    }
+    child.check("sudo -u fenhl /opt/night/bin/nightd report").await
+}
+
+/// Report an error to `night`, my personal status monitor system, with a base priority of 29.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
 pub fn night_report_sync(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
     let mut cmd = std::process::Command::new("sudo");
     cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg(path);
+    if extra.is_some() {
+        cmd.stdin(Stdio::piped());
+    }
+    let mut child = cmd.spawn().at_command("sudo -u fenhl /opt/night/bin/nightd report")?;
+    if let Some(extra) = extra {
+        child.stdin.take().expect("configured above").write_all(extra.as_ref()).at_command("sudo -u fenhl /opt/night/bin/nightd report")?;
+    }
+    child.check("sudo -u fenhl /opt/night/bin/nightd report")
+}
+
+/// Report an error to `night`, my personal status monitor system.
+///
+/// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
+pub fn night_report_priority_sync(path: &str, extra: Option<&str>, base_priority: N64) -> Result<std::process::Output> {
+    let mut cmd = std::process::Command::new("sudo");
+    cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg("--base-priority").arg(base_priority.to_string()).arg(path);
     if extra.is_some() {
         cmd.stdin(Stdio::piped());
     }

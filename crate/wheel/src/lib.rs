@@ -6,20 +6,11 @@ use {
         collections::HashMap,
         convert::Infallible as Never,
         fmt,
-        io::{
-            self,
-            prelude::*,
-        },
+        io,
         path::PathBuf,
-        process::Stdio,
     },
     itertools::Itertools as _,
-    noisy_float::prelude::*,
     thiserror::Error,
-    crate::traits::{
-        IoResultExt as _,
-        SyncCommandOutputExt as _,
-    },
 };
 pub use wheel_derive::{
     FromArc,
@@ -29,11 +20,23 @@ pub use wheel_derive::{
     lib,
     main,
 };
+#[cfg(feature = "night")] use {
+    std::{
+        io::prelude::*,
+        process::Stdio,
+    },
+    noisy_float::prelude::*,
+    crate::traits::{
+        IoResultExt as _,
+        SyncCommandOutputExt as _,
+    },
+};
 #[cfg(feature = "pyo3")] use pyo3::{
     exceptions::PyException,
     prelude::*,
 };
-#[cfg(feature = "tokio")] use {
+#[cfg(all(feature = "night", feature = "tokio"))]
+use {
     tokio::{
         io::AsyncWriteExt as _,
         process::Command,
@@ -328,7 +331,7 @@ pub fn yesno(prompt: &str) -> Result<bool> {
     }
 }
 
-#[cfg(feature = "tokio")]
+#[cfg(all(feature = "night", feature = "tokio"))]
 /// Report an error to `night`, my personal status monitor system, with a base priority of 29.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
@@ -345,7 +348,7 @@ pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::proces
     child.check("sudo -u fenhl /opt/night/bin/nightd report").await
 }
 
-#[cfg(feature = "tokio")]
+#[cfg(all(feature = "night", feature = "tokio"))]
 /// Report an error to `night`, my personal status monitor system.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
@@ -362,6 +365,7 @@ pub async fn night_report_priority(path: &str, extra: Option<&str>, base_priorit
     child.check("sudo -u fenhl /opt/night/bin/nightd report").await
 }
 
+#[cfg(feature = "night")]
 /// Report an error to `night`, my personal status monitor system, with a base priority of 29.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
@@ -378,6 +382,7 @@ pub fn night_report_sync(path: &str, extra: Option<&str>) -> Result<std::process
     child.check("sudo -u fenhl /opt/night/bin/nightd report")
 }
 
+#[cfg(feature = "night")]
 /// Report an error to `night`, my personal status monitor system.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.

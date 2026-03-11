@@ -22,6 +22,7 @@ warnings = "deny"
 default = ["futures", "tokio"]
 github = ["chrono", "dep:github-app-auth", "reqwest", "reqwest/blocking", "reqwest/query", "dep:semver", "serde_json", "dep:url"]
 gui = ["dark-light", "gio", "iced"]
+night = ["dep:noisy_float"]
 racetime = ["dep:racetime", "reqwest", "tungstenite028"]
 reqwest = ["futures", "dep:reqwest", "tokio", "dep:tokio-util"]
 rocket = ["dep:rocket", "dep:rocket-util"]
@@ -43,7 +44,7 @@ futures = { version = "0.3", optional = true }
 github-app-auth = { git = "https://github.com/fenhl/github-app-auth", optional = true }
 iced = { version = "0.14", optional = true }
 itertools = "0.14"
-noisy_float = "0.2"
+noisy_float = { version = "0.2", optional = true }
 pyo3 = { version = "0.25", optional = true }
 racetime = { version = "0.32", optional = true }
 reqwest = { version = "0.13", default-features = false, features = ["stream"], optional = true }

@@ -38,6 +38,7 @@ async-trait = "0.1"
 chrono = { version = "0.4", default-features = false, features = ["now"], optional = true }
 clap = "4" # used in proc macro
 clap_complete = { version = "4", features = ["unstable-dynamic"] } # used in proc macro
+console-subscriber = { version = "0.4", features = ["parking_lot"], optional = true } # used in proc macro; optional instead of cfg(tokio_unstable) to make Cargo properly ignore it when not used
 #dark-light = { version = "2.0.0", optional = true } # https://github.com/rust-dark-light/dark-light/issues/73
 dark-light = { git = "https://github.com/rust-dark-light/dark-light", optional = true }
 futures = { version = "0.3", optional = true }
@@ -63,7 +64,6 @@ url = { version = "2", features = ["serde"], optional = true }
 wheel-derive = { path = "../wheel-derive" }
 
 [target.'cfg(tokio_unstable)'.dependencies]
-console-subscriber = { version = "0.4", features = ["parking_lot"] } # used in proc macro
 tokio = { version = "1", features = ["fs", "io-util", "macros", "parking_lot", "process", "rt-multi-thread", "sync", "tracing"], optional = true }
 
 [target.'cfg(not(tokio_unstable))'.dependencies]

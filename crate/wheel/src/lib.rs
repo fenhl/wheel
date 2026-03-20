@@ -332,7 +332,7 @@ pub fn yesno(prompt: &str) -> Result<bool> {
 }
 
 #[cfg(all(feature = "night", feature = "tokio"))]
-/// Report an error to `night`, my personal status monitor system, with a base priority of 29.
+/// Report an error to `night`, my personal status monitor system, with a base priority of 29 and a priority delta of 1.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
 pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
@@ -352,9 +352,9 @@ pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::proces
 /// Report an error to `night`, my personal status monitor system.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
-pub async fn night_report_priority(path: &str, extra: Option<&str>, base_priority: N64) -> Result<std::process::Output> {
+pub async fn night_report_priority(path: &str, extra: Option<&str>, base_priority: N64, priority_delta: R64) -> Result<std::process::Output> {
     let mut cmd = Command::new("sudo");
-    cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg("--base-priority").arg(base_priority.to_string()).arg(path);
+    cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg("--base-priority").arg(base_priority.to_string()).arg("--priority-delta").arg(priority_delta.to_string()).arg(path);
     if extra.is_some() {
         cmd.stdin(Stdio::piped());
     }
@@ -366,7 +366,7 @@ pub async fn night_report_priority(path: &str, extra: Option<&str>, base_priorit
 }
 
 #[cfg(feature = "night")]
-/// Report an error to `night`, my personal status monitor system, with a base priority of 29.
+/// Report an error to `night`, my personal status monitor system, with a base priority of 29 and a priority delta of 1.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
 pub fn night_report_sync(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
@@ -386,9 +386,9 @@ pub fn night_report_sync(path: &str, extra: Option<&str>) -> Result<std::process
 /// Report an error to `night`, my personal status monitor system.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
-pub fn night_report_priority_sync(path: &str, extra: Option<&str>, base_priority: N64) -> Result<std::process::Output> {
+pub fn night_report_priority_sync(path: &str, extra: Option<&str>, base_priority: N64, priority_delta: R64) -> Result<std::process::Output> {
     let mut cmd = std::process::Command::new("sudo");
-    cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg("--base-priority").arg(base_priority.to_string()).arg(path);
+    cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg("--base-priority").arg(base_priority.to_string()).arg("--priority-delta").arg(priority_delta.to_string()).arg(path);
     if extra.is_some() {
         cmd.stdin(Stdio::piped());
     }

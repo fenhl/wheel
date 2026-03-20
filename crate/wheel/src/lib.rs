@@ -6,20 +6,11 @@ use {
         collections::HashMap,
         convert::Infallible as Never,
         fmt,
-        io::{
-            self,
-            prelude::*,
-        },
+        io,
         path::PathBuf,
-        process::Stdio,
     },
     itertools::Itertools as _,
-    noisy_float::prelude::*,
     thiserror::Error,
-    crate::traits::{
-        IoResultExt as _,
-        SyncCommandOutputExt as _,
-    },
 };
 pub use wheel_derive::{
     FromArc,
@@ -29,11 +20,23 @@ pub use wheel_derive::{
     lib,
     main,
 };
+#[cfg(feature = "night")] use {
+    std::{
+        io::prelude::*,
+        process::Stdio,
+    },
+    noisy_float::prelude::*,
+    crate::traits::{
+        IoResultExt as _,
+        SyncCommandOutputExt as _,
+    },
+};
 #[cfg(feature = "pyo3")] use pyo3::{
     exceptions::PyException,
     prelude::*,
 };
-#[cfg(feature = "tokio")] use {
+#[cfg(all(feature = "night", feature = "tokio"))]
+use {
     tokio::{
         io::AsyncWriteExt as _,
         process::Command,
@@ -46,7 +49,7 @@ pub use wheel_derive::{
     clap,
     clap_complete,
 };
-#[cfg(tokio_unstable)] #[doc(hidden)] pub use console_subscriber;
+#[cfg(feature = "console-subscriber")] #[doc(hidden)] pub use console_subscriber;
 #[cfg(feature = "rocket")] #[doc(hidden)] pub use rocket;
 #[cfg(feature = "tokio")] #[doc(hidden)] pub use tokio;
 
@@ -328,8 +331,8 @@ pub fn yesno(prompt: &str) -> Result<bool> {
     }
 }
 
-#[cfg(feature = "tokio")]
-/// Report an error to `night`, my personal status monitor system, with a base priority of 29.
+#[cfg(all(feature = "night", feature = "tokio"))]
+/// Report an error to `night`, my personal status monitor system, with a base priority of 29 and a priority delta of 1.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
 pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
@@ -345,13 +348,13 @@ pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::proces
     child.check("sudo -u fenhl /opt/night/bin/nightd report").await
 }
 
-#[cfg(feature = "tokio")]
+#[cfg(all(feature = "night", feature = "tokio"))]
 /// Report an error to `night`, my personal status monitor system.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
-pub async fn night_report_priority(path: &str, extra: Option<&str>, base_priority: N64) -> Result<std::process::Output> {
+pub async fn night_report_priority(path: &str, extra: Option<&str>, base_priority: N64, priority_delta: R64) -> Result<std::process::Output> {
     let mut cmd = Command::new("sudo");
-    cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg("--base-priority").arg(base_priority.to_string()).arg(path);
+    cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg("--base-priority").arg(base_priority.to_string()).arg("--priority-delta").arg(priority_delta.to_string()).arg(path);
     if extra.is_some() {
         cmd.stdin(Stdio::piped());
     }
@@ -362,7 +365,8 @@ pub async fn night_report_priority(path: &str, extra: Option<&str>, base_priorit
     child.check("sudo -u fenhl /opt/night/bin/nightd report").await
 }
 
-/// Report an error to `night`, my personal status monitor system, with a base priority of 29.
+#[cfg(feature = "night")]
+/// Report an error to `night`, my personal status monitor system, with a base priority of 29 and a priority delta of 1.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
 pub fn night_report_sync(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
@@ -378,12 +382,13 @@ pub fn night_report_sync(path: &str, extra: Option<&str>) -> Result<std::process
     child.check("sudo -u fenhl /opt/night/bin/nightd report")
 }
 
+#[cfg(feature = "night")]
 /// Report an error to `night`, my personal status monitor system.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
-pub fn night_report_priority_sync(path: &str, extra: Option<&str>, base_priority: N64) -> Result<std::process::Output> {
+pub fn night_report_priority_sync(path: &str, extra: Option<&str>, base_priority: N64, priority_delta: R64) -> Result<std::process::Output> {
     let mut cmd = std::process::Command::new("sudo");
-    cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg("--base-priority").arg(base_priority.to_string()).arg(path);
+    cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg("--base-priority").arg(base_priority.to_string()).arg("--priority-delta").arg(priority_delta.to_string()).arg(path);
     if extra.is_some() {
         cmd.stdin(Stdio::piped());
     }

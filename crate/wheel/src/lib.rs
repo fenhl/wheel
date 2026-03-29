@@ -56,6 +56,7 @@ use {
 #[cfg(feature = "tokio")] pub mod fs;
 #[cfg(feature = "github")] pub mod github;
 #[cfg(feature = "gui")] pub mod gui;
+#[cfg(feature = "nixos")] pub mod nixos;
 pub mod traits;
 
 /// Prints the given prompt to stdout, then reads and returns a line from stdin.

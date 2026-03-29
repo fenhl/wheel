@@ -165,7 +165,7 @@ pub fn rebuild() -> impl Stream<Item = Result<RebuildMessage>> {
                                     },
                                 }
 
-                                let text = match serde_json::from_str(line).at_command("nixos-rebuild")? {
+                                let text = match serde_json::from_str(line).at_command(format!("nixos-rebuild (line: {line:?})"))? {
                                     Action::Start { id, kind, text, level } => {
                                         activities.insert(id, kind);
                                         if level <= 3 && !text.is_empty() {

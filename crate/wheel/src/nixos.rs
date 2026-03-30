@@ -1,4 +1,4 @@
-//! This module is based on <https://github.com/NixOS/nixpkgs/pull/203228>.
+//! This module is based on <https://github.com/NixOS/nixpkgs/pull/503228>.
 //! The current version is based on the state of that PR as of commit 7396c59.
 
 use {
@@ -165,37 +165,41 @@ pub fn rebuild() -> impl Stream<Item = Result<RebuildMessage>> {
                                     },
                                 }
 
-                                let text = match serde_json::from_str(line).at_command(format!("nixos-rebuild (line: {line:?})"))? {
-                                    Action::Start { id, kind, text, level } => {
-                                        activities.insert(id, kind);
-                                        if level <= 3 && !text.is_empty() {
-                                            Some(text)
-                                        } else {
+                                let text = if let Ok(line) = serde_json::from_str(line) {
+                                    match line {
+                                        Action::Start { id, kind, text, level } => {
+                                            activities.insert(id, kind);
+                                            if level <= 3 && !text.is_empty() {
+                                                Some(text)
+                                            } else {
+                                                None
+                                            }
+                                        }
+                                        Action::Stop { id } => {
+                                            activities.remove(&id);
+                                            copy_bytes.remove(&id);
                                             None
                                         }
-                                    }
-                                    Action::Stop { id } => {
-                                        activities.remove(&id);
-                                        copy_bytes.remove(&id);
-                                        None
-                                    }
-                                    Action::Result { id, res_kind, fields } => {
-                                        let act_kind = activities.get(&id).copied().unwrap_or_default();
-                                        if res_kind == RES_PROGRESS && let &[done, expected, ..] = &*fields {
-                                            match act_kind {
-                                                ACT_BUILDS => { per_act_progress.insert((act_kind, id), (ProgressKind::Builds, done, expected)); }
-                                                ACT_COPY_PATHS => { per_act_progress.insert((act_kind, id), (ProgressKind::Copies, done, expected)); }
-                                                ACT_COPY_PATH => { copy_bytes.insert(id, (done, expected.max(1))); }
-                                                _ => {}
-                                            }                                        
+                                        Action::Result { id, res_kind, fields } => {
+                                            let act_kind = activities.get(&id).copied().unwrap_or_default();
+                                            if res_kind == RES_PROGRESS && let &[done, expected, ..] = &*fields {
+                                                match act_kind {
+                                                    ACT_BUILDS => { per_act_progress.insert((act_kind, id), (ProgressKind::Builds, done, expected)); }
+                                                    ACT_COPY_PATHS => { per_act_progress.insert((act_kind, id), (ProgressKind::Copies, done, expected)); }
+                                                    ACT_COPY_PATH => { copy_bytes.insert(id, (done, expected.max(1))); }
+                                                    _ => {}
+                                                }                                        
+                                            }
+                                            None
                                         }
-                                        None
+                                        Action::Msg { level, msg } => if level <= 1 && !msg.is_empty() {
+                                            Some(msg)
+                                        } else {
+                                            None
+                                        },
                                     }
-                                    Action::Msg { level, msg } => if level <= 1 && !msg.is_empty() {
-                                        Some(msg)
-                                    } else {
-                                        None
-                                    },
+                                } else {
+                                    None
                                 };
                                 let builds_done = per_act_progress.values().filter(|(kind, _, _)| *kind == ProgressKind::Builds).map(|(_, done, _)| done).sum::<usize>();
                                 let builds_expected = per_act_progress.values().filter(|(kind, _, _)| *kind == ProgressKind::Builds).map(|(_, _, expected)| expected).sum::<usize>();

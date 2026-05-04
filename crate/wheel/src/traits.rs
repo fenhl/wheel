@@ -618,24 +618,48 @@ impl IsNetworkError for async_proto::WriteError {
 }
 
 #[cfg(feature = "racetime")]
-impl IsNetworkError for racetime::Error {
+impl IsNetworkError for racetime::AuthError {
     fn is_network_error(&self) -> bool {
         match self {
-            Self::Custom(_) => false, // can't dynamically downcast to IsNetworkError
+            Self::Http(e) => e.is_network_error(),
+            Self::Url(_) => false,
+            Self::ResponseStatus { inner, .. } => inner.is_network_error(),
+        }
+    }
+}
+
+#[cfg(feature = "racetime")]
+impl IsNetworkError for racetime::EditError {
+    fn is_network_error(&self) -> bool {
+        match self {
+            Self::Http(e) => e.is_network_error(),
+            Self::Url(_) => false,
+            Self::ResponseStatus { inner, .. } => inner.is_network_error(),
+        }
+    }
+}
+
+#[cfg(feature = "racetime")]
+impl IsNetworkError for racetime::handler::SendError {
+    fn is_network_error(&self) -> bool {
+        match self {
+            Self::Serialize(_) => false,
+            Self::WebSocket(e) => e.is_network_error(),
+        }
+    }
+}
+
+#[cfg(feature = "racetime")]
+impl IsNetworkError for racetime::StartError {
+    fn is_network_error(&self) -> bool {
+        match self {
             Self::HeaderToStr(_) => false,
-            Self::InvalidHeaderValue(_) => false,
-            Self::Io(e) => e.is_network_error(),
-            Self::Json(_) => false,
-            Self::Task(_) => false,
-            Self::UrlParse(_) => false,
-            Self::EndOfStream => true,
+            Self::Http(e) => e.is_network_error(),
+            Self::Url(_) => false,
             Self::LocationCategory => false,
             Self::LocationFormat => false,
             Self::MissingLocationHeader => false,
-            Self::Reqwest(e) | Self::ResponseStatus { inner: e, .. } => e.is_network_error(),
-            Self::Server(_) => false,
-            Self::Tungstenite(e) => e.is_network_error(),
-            Self::UnexpectedMessageType(_) => false,
+            Self::ResponseStatus { inner, .. } => inner.is_network_error(),
         }
     }
 }

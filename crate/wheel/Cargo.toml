@@ -47,7 +47,7 @@ iced = { version = "0.14", optional = true }
 itertools = "0.14"
 noisy_float = { version = "0.2", optional = true }
 pyo3 = { version = "0.25", optional = true }
-racetime = { version = "0.32", optional = true }
+racetime = { version = "0.33", optional = true }
 reqwest = { version = "0.13", default-features = false, features = ["stream"], optional = true }
 rocket = { version = "0.5", optional = true } # used in proc macro
 rocket-util = { git = "https://github.com/fenhl/rocket-util", optional = true }

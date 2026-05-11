@@ -86,8 +86,14 @@ pub fn is_network_error(input: TokenStream) -> TokenStream {
                         #ty::#variant_name { .. } => #value,
                     }
                 } else {
-                    quote_spanned! {variant.span()=>
-                        #ty::#variant_name(e) => ::wheel::traits::IsNetworkError::is_network_error(e),
+                    match variant.fields {
+                        Fields::Unit => quote_spanned! {variant.span()=>
+                            #ty::#variant_name => false,
+                        },
+                        Fields::Unnamed(FieldsUnnamed { .. }) => quote_spanned! {variant.span()=>
+                            #ty::#variant_name(e) => ::wheel::traits::IsNetworkError::is_network_error(e),
+                        },
+                        Fields::Named(_) => return quote_spanned!(variant.span()=> compile_error!("#[is_network_error] is required for variants with named fields");),
                     }
                 }
             })

@@ -79,9 +79,24 @@ pub fn is_network_error(input: TokenStream) -> TokenStream {
                     let value = match attr.meta.require_name_value() {
                         Ok(name_value) => match &name_value.value {
                             Expr::Lit(ExprLit { attrs, lit: Lit::Bool(lit) }) if attrs.is_empty() => lit,
-                            _ => return quote_spanned!(name_value.span()=> compile_error!("unexpected value of #[is_network_error] attribute");).into(),
+                            _ => return quote_spanned! {name_value.span()=>
+                                impl ::wheel::traits::IsNetworkError for #ty {
+                                    fn is_network_error(&self) -> bool { false }
+                                }
+
+                                compile_error!("unexpected value of #[is_network_error] attribute");
+                            }.into(),
                         },
-                        Err(e) => return e.into_compile_error().into(),
+                        Err(e) => {
+                            let e = e.into_compile_error();
+                            return quote! {
+                                impl ::wheel::traits::IsNetworkError for #ty {
+                                    fn is_network_error(&self) -> bool { false }
+                                }
+
+                                #e
+                            }.into()
+                        }
                     };
                     quote_spanned! {attr.span()=>
                         #ty::#variant_name { .. } => #value,
@@ -94,13 +109,25 @@ pub fn is_network_error(input: TokenStream) -> TokenStream {
                         Fields::Unnamed(FieldsUnnamed { .. }) => quote_spanned! {variant.span()=>
                             #ty::#variant_name(e) => ::wheel::traits::IsNetworkError::is_network_error(e),
                         },
-                        Fields::Named(_) => return quote_spanned!(variant.span()=> compile_error!("#[is_network_error] is required for variants with named fields");).into(),
+                        Fields::Named(_) => return quote_spanned! {variant.span()=>
+                            impl ::wheel::traits::IsNetworkError for #ty {
+                                fn is_network_error(&self) -> bool { false }
+                            }
+
+                            compile_error!("#[is_network_error] is required for variants with named fields");
+                        }.into(),
                     }
                 });
             }
             arms
         }
-        _ => return quote!(compile_error!("derive(IsNetworkError) is only implemented for enums");).into(),
+        _ => return quote! {
+            impl ::wheel::traits::IsNetworkError for #ty {
+                fn is_network_error(&self) -> bool { false }
+            }
+
+            compile_error!("derive(IsNetworkError) is only implemented for enums");
+        }.into(),
     };
     TokenStream::from(quote! {
         impl ::wheel::traits::IsNetworkError for #ty {

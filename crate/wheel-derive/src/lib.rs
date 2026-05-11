@@ -83,7 +83,7 @@ pub fn is_network_error(input: TokenStream) -> TokenStream {
                         Err(e) => return e.into_compile_error(),
                     };
                     quote! {
-                        #ty::#variant_name(_) => #value,
+                        #ty::#variant_name { .. } => #value,
                     }
                 } else {
                     quote! {

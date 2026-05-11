@@ -71,33 +71,35 @@ pub fn is_network_error(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let ty = input.ident;
     let arms = match input.data {
-        Data::Enum(DataEnum { variants, .. }) => variants.iter()
-            .map(|variant| {
+        Data::Enum(DataEnum { variants, .. }) => {
+            let mut arms = Vec::with_capacity(variants.len());
+            for variant in variants {
                 let variant_name = &variant.ident;
-                if let Some(attr) = variant.attrs.iter().find(|attr| attr.path().get_ident().map_or(false, |ident| ident == "is_network_error")) {
+                arms.push(if let Some(attr) = variant.attrs.iter().find(|attr| attr.path().get_ident().map_or(false, |ident| ident == "is_network_error")) {
                     let value = match attr.meta.require_name_value() {
                         Ok(name_value) => match &name_value.value {
                             Expr::Lit(ExprLit { attrs, lit: Lit::Bool(lit) }) if attrs.is_empty() => lit,
-                            _ => return quote_spanned!(name_value.span()=> compile_error!("unexpected value of #[is_network_error] attribute");),
+                            _ => return quote_spanned!(name_value.span()=> compile_error!("unexpected value of #[is_network_error] attribute");).into(),
                         },
-                        Err(e) => return e.into_compile_error(),
+                        Err(e) => return e.into_compile_error().into(),
                     };
                     quote_spanned! {attr.span()=>
                         #ty::#variant_name { .. } => #value,
                     }
                 } else {
-                    match variant.fields {
+                    match &variant.fields {
                         Fields::Unit => quote_spanned! {variant.span()=>
                             #ty::#variant_name => false,
                         },
                         Fields::Unnamed(FieldsUnnamed { .. }) => quote_spanned! {variant.span()=>
                             #ty::#variant_name(e) => ::wheel::traits::IsNetworkError::is_network_error(e),
                         },
-                        Fields::Named(_) => return quote_spanned!(variant.span()=> compile_error!("#[is_network_error] is required for variants with named fields");),
+                        Fields::Named(_) => return quote_spanned!(variant.span()=> compile_error!("#[is_network_error] is required for variants with named fields");).into(),
                     }
-                }
-            })
-            .collect_vec(),
+                });
+            }
+            arms
+        }
         _ => return quote!(compile_error!("derive(IsNetworkError) is only implemented for enums");).into(),
     };
     TokenStream::from(quote! {

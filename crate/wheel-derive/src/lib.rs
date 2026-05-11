@@ -82,12 +82,12 @@ pub fn is_network_error(input: TokenStream) -> TokenStream {
                         },
                         Err(e) => return e.into_compile_error(),
                     };
-                    quote! {
+                    quote_spanned! {attr.span()=>
                         #ty::#variant_name { .. } => #value,
                     }
                 } else {
-                    quote! {
-                        #ty::#variant_name(e) => e.is_network_error(),
+                    quote_spanned! {variant.span()=>
+                        #ty::#variant_name(e) => ::wheel::traits::IsNetworkError::is_network_error(e),
                     }
                 }
             })

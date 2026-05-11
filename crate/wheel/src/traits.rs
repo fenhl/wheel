@@ -28,6 +28,7 @@ use {
     std::time::Duration,
     tokio::time::sleep,
 };
+pub use wheel_derive::IsNetworkError;
 
 /// A convenience method for working with infallible results
 pub trait ResultNeverExt {

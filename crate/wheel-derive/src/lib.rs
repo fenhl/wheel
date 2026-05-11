@@ -95,7 +95,7 @@ pub fn is_network_error(input: TokenStream) -> TokenStream {
         _ => return quote!(compile_error!("derive(IsNetworkError) is only implemented for enums");).into(),
     };
     TokenStream::from(quote! {
-        impl ::wheel::IsNetworkError for #ty {
+        impl ::wheel::traits::IsNetworkError for #ty {
             fn is_network_error(&self) -> bool {
                 match self {
                     #(#arms)*

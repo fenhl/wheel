@@ -273,23 +273,21 @@ pub trait IsVerbose {
 /// Use this trait together with a `custom_exit` argument on [`main`] to customize the behavior of the program when exiting with an error.
 pub trait CustomExit {
     /// Exits from the program using this value, displaying it and the given command name (usually `CARGO_PKG_NAME`) in case of an error.
-    fn exit(self, cmd_name: &'static str) -> !;
+    fn exit(self, cmd_name: &'static str);
 }
 
 impl CustomExit for Never {
-    fn exit(self, _: &'static str) -> ! {
+    fn exit(self, _: &'static str) {
         match self {}
     }
 }
 
 impl CustomExit for () {
-    fn exit(self, _: &'static str) -> ! {
-        std::process::exit(0)
-    }
+    fn exit(self, _: &'static str) {}
 }
 
 impl<T: CustomExit, E: CustomExit> CustomExit for Result<T, E> {
-    fn exit(self, cmd_name: &'static str) -> ! {
+    fn exit(self, cmd_name: &'static str) {
         match self {
             Ok(x) => x.exit(cmd_name),
             Err(e) => e.exit(cmd_name),

@@ -44,7 +44,7 @@ dark-light = { git = "https://github.com/rust-dark-light/dark-light", optional =
 futures = { version = "0.3", optional = true }
 github-app-auth = { git = "https://github.com/fenhl/github-app-auth", optional = true }
 iced = { version = "0.14", optional = true }
-itertools = "0.14"
+itertools = "0.15"
 noisy_float = { version = "0.2", optional = true }
 pyo3 = { version = "0.25", optional = true }
 racetime = { version = "0.33", optional = true }

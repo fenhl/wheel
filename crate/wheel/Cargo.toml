@@ -50,7 +50,7 @@ pyo3 = { version = "0.25", optional = true }
 racetime = { version = "0.33", optional = true }
 reqwest = { version = "0.13", default-features = false, features = ["stream"], optional = true }
 rocket = { git = "https://github.com/fenhl/Rocket", branch = "forms", optional = true } # used in proc macro
-rocket-util = { git = "https://github.com/fenhl/rocket-util", branch = "forms", optional = true }
+rocket-util = { git = "https://github.com/fenhl/rocket-util", optional = true }
 semver = { version = "1", optional = true }
 serde = { version = "1", optional = true }
 serde_json = { version = "1", optional = true }

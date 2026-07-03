@@ -4665,7 +4665,7 @@ dependencies = [
 [[package]]
 name = "rocket-util"
 version = "0.2.17"
-source = "git+https://github.com/fenhl/rocket-util?branch=forms#d5e27361be9418faa444bb8cf74ff44c5be809b9"
+source = "git+https://github.com/fenhl/rocket-util#d5e27361be9418faa444bb8cf74ff44c5be809b9"
 dependencies = [
  "rocket",
  "rocket-util-derive",
@@ -4676,7 +4676,7 @@ dependencies = [
 [[package]]
 name = "rocket-util-derive"
 version = "0.2.17"
-source = "git+https://github.com/fenhl/rocket-util?branch=forms#d5e27361be9418faa444bb8cf74ff44c5be809b9"
+source = "git+https://github.com/fenhl/rocket-util#d5e27361be9418faa444bb8cf74ff44c5be809b9"
 dependencies = [
  "proc-macro2",
  "quote",

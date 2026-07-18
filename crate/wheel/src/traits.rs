@@ -644,6 +644,7 @@ impl IsNetworkError for racetime::EditError {
 impl IsNetworkError for racetime::handler::SendError {
     fn is_network_error(&self) -> bool {
         match self {
+            Self::Elapsed(_) => true,
             Self::Serialize(_) => false,
             Self::WebSocket(e) => e.is_network_error(),
         }

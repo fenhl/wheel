@@ -23,14 +23,14 @@ default = ["futures", "tokio"]
 github = ["chrono", "dep:github-app-auth", "reqwest", "reqwest/blocking", "reqwest/query", "dep:semver", "serde_json", "dep:url"]
 gui = ["dark-light", "gio", "iced"]
 night = ["dep:noisy_float"]
-racetime = ["dep:racetime", "reqwest", "tungstenite029"]
+racetime = ["dep:racetime", "reqwest", "tungstenite030"]
 reqwest = ["futures", "dep:reqwest", "tokio", "dep:tokio-util"]
 rocket = ["dep:rocket", "dep:rocket-util"]
 serde_json = ["dep:serde", "dep:serde_json", "dep:serde_json_path_to_error"]
 tokio = ["dep:tokio"]
 tungstenite021 = ["async-proto?/tokio-tungstenite021", "dep:tungstenite021"]
 tungstenite024 = ["async-proto?/tokio-tungstenite024", "dep:tungstenite024"]
-tungstenite029 = ["async-proto?/tokio-tungstenite029", "dep:tungstenite029"]
+tungstenite030 = ["async-proto?/tokio-tungstenite030", "dep:tungstenite030"]
 
 [dependencies]
 async-proto = { version = "0.26", optional = true }
@@ -47,7 +47,7 @@ iced = { version = "0.14", optional = true }
 itertools = "0.15"
 noisy_float = { version = "0.2", optional = true }
 pyo3 = { version = "0.25", optional = true }
-racetime = { version = "0.33", optional = true }
+racetime = { version = "0.35", optional = true }
 reqwest = { version = "0.13", default-features = false, features = ["stream"], optional = true }
 rocket = { git = "https://github.com/fenhl/Rocket", branch = "forms", optional = true } # used in proc macro
 rocket-util = { git = "https://github.com/fenhl/rocket-util", optional = true }
@@ -59,7 +59,7 @@ thiserror = "2"
 tokio-util = { version = "0.7", features = ["io"], optional = true }
 tungstenite021 = { package = "tungstenite", version = "0.21", optional = true }
 tungstenite024 = { package = "tungstenite", version = "0.24", optional = true }
-tungstenite029 = { package = "tungstenite", version = "0.29", optional = true }
+tungstenite030 = { package = "tungstenite", version = "0.30", optional = true }
 url = { version = "2", features = ["serde"], optional = true }
 wheel-derive = { path = "../wheel-derive" }
 

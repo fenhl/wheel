@@ -596,10 +596,10 @@ impl IsNetworkError for async_proto::ReadError {
             async_proto::ReadErrorKind::Io(e) => e.is_network_error(),
             #[cfg(feature = "tungstenite021")] async_proto::ReadErrorKind::MessageKind021(msg) => msg.is_close(),
             #[cfg(feature = "tungstenite024")] async_proto::ReadErrorKind::MessageKind024(msg) => msg.is_close(),
-            #[cfg(feature = "tungstenite029")] async_proto::ReadErrorKind::MessageKind029(msg) => msg.is_close(),
+            #[cfg(feature = "tungstenite030")] async_proto::ReadErrorKind::MessageKind030(msg) => msg.is_close(),
             #[cfg(feature = "tungstenite021")] async_proto::ReadErrorKind::Tungstenite021(e) => e.is_network_error(),
             #[cfg(feature = "tungstenite024")] async_proto::ReadErrorKind::Tungstenite024(e) => e.is_network_error(),
-            #[cfg(feature = "tungstenite029")] async_proto::ReadErrorKind::Tungstenite029(e) => e.is_network_error(),
+            #[cfg(feature = "tungstenite030")] async_proto::ReadErrorKind::Tungstenite030(e) => e.is_network_error(),
             _ => false,
         }
     }
@@ -612,7 +612,7 @@ impl IsNetworkError for async_proto::WriteError {
             async_proto::WriteErrorKind::Io(e) => e.is_network_error(),
             #[cfg(feature = "tungstenite021")] async_proto::WriteErrorKind::Tungstenite021(e) => e.is_network_error(),
             #[cfg(feature = "tungstenite024")] async_proto::WriteErrorKind::Tungstenite024(e) => e.is_network_error(),
-            #[cfg(feature = "tungstenite029")] async_proto::WriteErrorKind::Tungstenite029(e) => e.is_network_error(),
+            #[cfg(feature = "tungstenite030")] async_proto::WriteErrorKind::Tungstenite030(e) => e.is_network_error(),
             _ => false,
         }
     }
@@ -698,14 +698,14 @@ impl IsNetworkError for tungstenite024::Error {
     }
 }
 
-#[cfg(feature = "tungstenite029")]
-impl IsNetworkError for tungstenite029::Error {
+#[cfg(feature = "tungstenite030")]
+impl IsNetworkError for tungstenite030::Error {
     fn is_network_error(&self) -> bool {
         match self {
             Self::AlreadyClosed => true, // while the tungstenite docs describe this as a programmer error, it is unavoidable when the WebSocket is handled as a concurrent split sink/stream pair
             Self::Http(resp) => resp.status().is_server_error(),
             Self::Io(e) => e.is_network_error(),
-            Self::Protocol(tungstenite029::error::ProtocolError::ResetWithoutClosingHandshake) => true,
+            Self::Protocol(tungstenite030::error::ProtocolError::ResetWithoutClosingHandshake) => true,
             _ => false,
         }
     }

@@ -21,6 +21,7 @@ use {
 };
 #[cfg(feature = "reqwest")] use {
     futures::stream::TryStreamExt as _,
+    tokio::io::AsyncWrite,
     tokio_util::io::StreamReader,
 };
 #[cfg(all(feature = "reqwest", feature = "serde_json"))] use serde::de::DeserializeOwned;
@@ -499,13 +500,28 @@ pub trait ReqwestResponseExt: Sized {
     /// Like `json` but include response text in the error.
     async fn json_with_text_in_error<T: DeserializeOwned>(self) -> Result<T>;
 
+    /// Writes the response body to the given writer.
+    ///
+    /// Returns the size of the response body in bytes.
+    fn write_to<'a, W: AsyncWrite + Unpin + 'a>(self, writer: W) -> impl Future<Output = io::Result<u64>> + use<'a, Self, W>;
+
     /// Downloads the response body to the file system.
     ///
     /// Returns the size of the downloaded file in bytes.
-    fn download<P: AsRef<Path>>(self, path: P) -> impl Future<Output = Result<u64>> + use<Self, P>;
+    fn download<P: AsRef<Path>>(self, path: P) -> impl Future<Output = Result<u64>> + use<Self, P> {
+        let path = path.as_ref().to_owned();
+        async {
+            self.write_to(crate::fs::File::create(&path).await?).await.at(path)
+        }
+    }
 
     /// Like [`Self::download`] but return [`io::ErrorKind::AlreadyExists`] if the file exists.
-    fn download_new<P: AsRef<Path>>(self, path: P) -> impl Future<Output = Result<u64>> + use<Self, P>;
+    fn download_new<P: AsRef<Path>>(self, path: P) -> impl Future<Output = Result<u64>> + use<Self, P> {
+        let path = path.as_ref().to_owned();
+        async {
+            self.write_to(crate::fs::File::create_new(&path).await?).await.at(path)
+        }
+    }
 }
 
 #[cfg(feature = "reqwest")]
@@ -529,23 +545,12 @@ impl ReqwestResponseExt for reqwest::Response {
         serde_json_path_to_error::from_str(&text).map_err(|inner| Error::ResponseJsonPathToError { inner, text })
     }
 
-    fn download<P: AsRef<Path>>(self, path: P) -> impl Future<Output = Result<u64>> + use<P> {
-        let path = path.as_ref().to_owned();
-        async {
+    fn write_to<'a, W: AsyncWrite + Unpin + 'a>(self, mut writer: W) -> impl Future<Output = io::Result<u64>> + use<'a, W> {
+        async move {
             tokio::io::copy_buf(
                 &mut StreamReader::new(self.bytes_stream().map_err(crate::io_error_from_reqwest)),
-                &mut crate::fs::File::create(&path).await?,
-            ).await.at(path)
-        }
-    }
-
-    fn download_new<P: AsRef<Path>>(self, path: P) -> impl Future<Output = Result<u64>> + use<P> {
-        let path = path.as_ref().to_owned();
-        async {
-            tokio::io::copy_buf(
-                &mut StreamReader::new(self.bytes_stream().map_err(crate::io_error_from_reqwest)),
-                &mut crate::fs::File::create_new(&path).await?,
-            ).await.at(path)
+                &mut writer,
+            ).await
         }
     }
 }

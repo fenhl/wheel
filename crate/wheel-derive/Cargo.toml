@@ -6,6 +6,9 @@ edition.workspace = true
 rust-version.workspace = true
 description = "Derive macros for the wheel crate."
 
+[lints]
+workspace = true
+
 [lib]
 proc-macro = true
 

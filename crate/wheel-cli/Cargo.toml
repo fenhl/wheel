@@ -12,8 +12,14 @@ workspace = true
 name = "wheel"
 path = "src/main.rs"
 
+[build-dependencies]
+cargo_metadata = "0.23"
+thiserror = "2"
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
+gix = "0.90"
 mimalloc = "0.1"
-tokio = { version = "1", features = ["process"] }
+thiserror = "2"
+toml = "1"
 wheel = { path = "../wheel" }

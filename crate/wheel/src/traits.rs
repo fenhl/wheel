@@ -674,7 +674,7 @@ impl IsNetworkError for racetime::StartError {
 #[cfg(feature = "reqwest")]
 impl IsNetworkError for reqwest::Error {
     fn is_network_error(&self) -> bool {
-        self.is_request() || self.is_connect() || self.is_timeout() || self.status().map_or(false, |status| status.is_server_error())
+        self.is_request() || self.is_connect() || self.is_timeout() || self.status().map_or(false, |status| status.is_server_error()) || (self as &dyn std::error::Error).downcast_ref::<io::Error>().is_some_and(|e| e.is_network_error())
     }
 }
 

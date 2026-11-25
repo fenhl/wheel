@@ -9,3 +9,5 @@ cargo check --manifest-path=crate/wheel/Cargo.toml --no-default-features --featu
 cargo check --manifest-path=crate/wheel/Cargo.toml --all-features
 cargo doc
 nix build --no-link
+nix eval --expr "$(git show :crate/wheel-cli/assets/flake-bin.nix)" > /dev/null
+nix eval --expr "$(git show :crate/wheel-cli/assets/flake-lib.nix)" > /dev/null

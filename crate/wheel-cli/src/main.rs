@@ -32,6 +32,7 @@ enum Args {
         #[clap(long)]
         name: Option<String>,
     },
+    //TODO `PreCommit` subcommand with common checks
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -58,7 +59,10 @@ async fn main(args: Args) -> Result<(), Error> {
             //TODO configure pre-commit hook
             fs::write(path.join(".gitignore"), "/.direnv\n/target\n").await?;
             fs::write(path.join(".envrc"), "use flake\n").await?;
-            fs::write(path.join("flake.nix"), "{\n    inputs.flake.url = \"github:fenhl/flake\";\n    outputs = attrs: attrs.flake.lib {};\n}\n").await?;
+            fs::write(path.join("flake.nix"), match kind {
+                CrateKind::Bin => include_str!("../assets/flake-bin.nix"),
+                CrateKind::Lib => include_str!("../assets/flake-lib.nix"),
+            }).await?;
             Command::new("direnv").arg("allow").current_dir(&path).check("direnv allow").await?;
             fs::write(path.join("Cargo.toml"), &toml::to_string_pretty(&toml! {
                 [package]

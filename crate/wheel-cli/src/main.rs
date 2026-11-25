@@ -6,8 +6,12 @@ use {
         borrow::Cow,
         path::PathBuf,
     },
+    tokio::process::Command,
     toml::toml,
-    wheel::fs,
+    wheel::{
+        process::AsyncCommandOutputExt as _,
+        fs,
+    },
 };
 
 include!(concat!(env!("OUT_DIR"), "/build_output.rs"));
@@ -21,6 +25,7 @@ enum CrateKind {
 #[derive(clap::Parser)]
 #[clap(version)]
 enum Args {
+    //TODO `Add` subcommand to add dependencies with the expected version formatting
     New {
         kind: CrateKind,
         path: PathBuf,
@@ -33,6 +38,7 @@ enum Args {
 enum Error {
     #[error(transparent)] Git(#[from] gix::Error),
     #[error(transparent)] Io(#[from] wheel::io::Error),
+    #[error(transparent)] Process(#[from] wheel::process::Error),
     #[error(transparent)] Toml(#[from] toml::ser::Error),
     #[error("could not determine crate name from path, try specifying `--name`")]
     Name,
@@ -53,6 +59,7 @@ async fn main(args: Args) -> Result<(), Error> {
             fs::write(path.join(".gitignore"), "/.direnv\n/target\n").await?;
             fs::write(path.join(".envrc"), "use flake\n").await?;
             fs::write(path.join("flake.nix"), "{\n    inputs.flake.url = \"github:fenhl/flake\";\n    outputs = attrs: attrs.flake.lib {};\n}\n").await?;
+            Command::new("direnv").arg("allow").current_dir(&path).check("direnv allow").await?;
             fs::write(path.join("Cargo.toml"), &toml::to_string_pretty(&toml! {
                 [package]
                 name = name

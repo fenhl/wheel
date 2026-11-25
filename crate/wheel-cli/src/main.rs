@@ -32,8 +32,8 @@ enum Args {
 #[derive(Debug, thiserror::Error)]
 enum Error {
     #[error(transparent)] Git(#[from] gix::Error),
+    #[error(transparent)] Io(#[from] wheel::io::Error),
     #[error(transparent)] Toml(#[from] toml::ser::Error),
-    #[error(transparent)] Wheel(#[from] wheel::Error),
     #[error("could not determine crate name from path, try specifying `--name`")]
     Name,
 }

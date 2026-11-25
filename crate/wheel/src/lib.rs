@@ -2,15 +2,11 @@
 
 use {
     std::{
-        borrow::Cow,
         collections::HashMap,
         convert::Infallible as Never,
         fmt,
-        io,
-        path::PathBuf,
     },
     itertools::Itertools as _,
-    thiserror::Error,
 };
 pub use wheel_derive::{
     FromArc,
@@ -25,22 +21,17 @@ pub use wheel_derive::{
         process::Stdio,
     },
     noisy_float::prelude::*,
-    crate::traits::{
-        IoResultExt as _,
-        SyncCommandOutputExt as _,
+    crate::{
+        io::Annotate as _,
+        process::SyncCommandOutputExt as _,
     },
 };
-#[cfg(feature = "pyo3")] use pyo3::{
-    exceptions::PyException,
-    prelude::*,
-};
-#[cfg(all(feature = "night", feature = "tokio"))]
-use {
+#[cfg(all(feature = "night", feature = "tokio"))] use {
     tokio::{
         io::AsyncWriteExt as _,
         process::Command,
     },
-    crate::traits::AsyncCommandOutputExt as _,
+    crate::process::AsyncCommandOutputExt as _,
 };
 
 // used in proc macro:
@@ -55,10 +46,12 @@ use {
 #[cfg(feature = "tokio")] pub mod fs;
 #[cfg(feature = "github")] pub mod github;
 #[cfg(feature = "gui")] pub mod gui;
+pub mod io;
+pub mod process;
 pub mod traits;
 
 /// Prints the given prompt to stdout, then reads and returns a line from stdin.
-#[macro_export] macro_rules! input {
+#[macro_export] macro_rules! input_sync {
     ($($arg:tt)*) => {{
         use std::io::{
             prelude::*,
@@ -67,7 +60,7 @@ pub mod traits;
         };
 
         print!($($arg)*);
-        $crate::traits::IoResultExt::at_unknown(stdout().flush().and_then(|()| {
+        $crate::io::Annotate::at_unknown(stdout().flush().and_then(|()| {
             let mut buf = String::default();
             stdin().read_line(&mut buf)?;
             Ok(buf)
@@ -76,7 +69,7 @@ pub mod traits;
 }
 
 /// Prints the given text to stdout, without appending a newline but making sure it's actually displayed
-#[macro_export] macro_rules! print_flush {
+#[macro_export] macro_rules! print_flush_sync {
     ($($arg:tt)*) => {{
         use std::io::{
             prelude::*,
@@ -87,121 +80,6 @@ pub mod traits;
         $crate::traits::IoResultExt::at_unknown(stdout().flush())
     }};
 }
-
-/// Used in [`Error::Io`] as metadata for where the error occurred.
-#[derive(Debug)]
-pub enum IoErrorContext {
-    /// The error was not annotated with any context.
-    Unknown,
-    /// The error occurred while working with the given path.
-    Path(PathBuf),
-    /// The error occurred while working with the two given paths.
-    DoublePath(PathBuf, PathBuf),
-    /// The error occurred while trying to run a command with the given name.
-    Command(Cow<'static, str>),
-}
-
-impl fmt::Display for IoErrorContext {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Unknown => write!(f, "I/O error"),
-            Self::Path(path) => write!(f, "I/O error at {}", path.display()),
-            Self::DoublePath(src, dst) => write!(f, "I/O error at {} and {}", src.display(), dst.display()),
-            Self::Command(name) => write!(f, "in command `{name}`"),
-        }
-    }
-}
-
-/// An error that can be returned from the [traits] in this crate.
-#[allow(missing_docs)]
-#[derive(Debug, Error)]
-#[cfg_attr(feature = "rocket", derive(rocket_util::Error))]
-pub enum Error {
-    #[cfg(feature = "github")] #[error(transparent)] GitHubAuth(#[from] github_app_auth::AuthError),
-    #[cfg(all(feature = "chrono", feature = "reqwest"))] #[error(transparent)] HeaderToStr(#[from] reqwest::header::ToStrError),
-    #[cfg(all(feature = "chrono", feature = "reqwest"))] #[error(transparent)] ParseInt(#[from] std::num::ParseIntError),
-    /// A subprocess exited with a non-success status. Output information is available.
-    #[error("command `{name}` exited with {}", .output.status)]
-    CommandExit {
-        /// The name of the subprocess, as indicated by the `check` call.
-        name: Cow<'static, str>,
-        output: std::process::Output,
-    },
-    /// A subprocess exited with a non-success status. Output information is unavailable.
-    #[error("command `{name}` exited with {}", .status)]
-    CommandExitStatus {
-        /// The name of the subprocess, as indicated by the `check` call.
-        name: Cow<'static, str>,
-        status: std::process::ExitStatus,
-    },
-    #[cfg(all(feature = "chrono", feature = "reqwest"))]
-    #[error("x-ratelimit-reset header is out of range for chrono::DateTime")]
-    InvalidDateTime,
-    #[error("{context}: {inner}")]
-    Io {
-        #[source]
-        inner: io::Error,
-        /// The path or command where this error occurred, if known.
-        context: IoErrorContext,
-    },
-    #[cfg(feature = "serde_json")]
-    #[error("{context}: {inner}")]
-    Json {
-        #[source]
-        inner: serde_json::Error,
-        /// The path or command where this error occurred, if known.
-        context: IoErrorContext,
-    },
-    #[cfg(feature = "serde_json")]
-    #[error("{context}: {inner}")]
-    JsonPathToError {
-        #[source]
-        inner: serde_json_path_to_error::Error,
-        /// The path or command where this error occurred, if known.
-        context: IoErrorContext,
-    },
-    #[cfg(all(feature = "chrono", feature = "reqwest"))]
-    #[error("missing x-ratelimit-reset header in GitHub error response")]
-    MissingRateLimitResetHeader,
-    #[cfg(any(all(feature = "reqwest", feature = "serde_json"), all(feature = "chrono", feature = "reqwest")))]
-    #[error("HTTP error{}: {}", if let Some(url) = .0.url() { format!(" at {url}") } else { String::default() }, .0)]
-    Reqwest(#[from] reqwest::Error),
-    #[cfg(all(feature = "reqwest", feature = "serde_json"))]
-    #[error("{inner}, body:\n\n{text}")]
-    ResponseJson {
-        #[source]
-        inner: serde_json::Error,
-        text: String,
-    },
-    #[cfg(all(feature = "reqwest", feature = "serde_json"))]
-    #[error("{inner}, body:\n\n{text}")]
-    ResponseJsonPathToError {
-        #[source]
-        inner: serde_json_path_to_error::Error,
-        text: String,
-    },
-    #[cfg(feature = "reqwest")]
-    #[error("HTTP error{}: {inner}, body:\n\n{}", if let Some(url) = .inner.url() { format!(" at {url}") } else { String::default() }, .text.as_ref().map(|text| text.clone()).unwrap_or_else(|e| e.to_string()))]
-    ResponseStatus {
-        #[source]
-        inner: reqwest::Error,
-        headers: reqwest::header::HeaderMap,
-        text: reqwest::Result<String>,
-    },
-    #[cfg(all(feature = "chrono", feature = "reqwest"))]
-    #[error("attempted to send GitHub API request with streamed body")]
-    UncloneableGitHubRequest,
-}
-
-#[cfg(feature = "pyo3")]
-impl From<Error> for PyErr {
-    fn from(e: Error) -> Self {
-        PyException::new_err(e.to_string()) //TODO different exception classes for different Error variants?
-    }
-}
-
-/// A shorthand for a result with defaults for both variants (unit and this crate's [`enum@Error`], respectively).
-pub type Result<T = (), E = Error> = std::result::Result<T, E>;
 
 /// Members of this trait can be returned from a main function annotated with [`main`].
 pub trait MainOutput {
@@ -297,33 +175,33 @@ impl<T: CustomExit, E: CustomExit> CustomExit for Result<T, E> {
 
 /// Converts a [`reqwest::Error`] into an [`io::Error`] with an appropriate [`io::ErrorKind`].
 #[cfg(feature = "reqwest")]
-pub fn io_error_from_reqwest(e: reqwest::Error) -> io::Error {
-    io::Error::new(if e.is_timeout() {
-        io::ErrorKind::TimedOut
+pub fn io_error_from_reqwest(e: reqwest::Error) -> std::io::Error {
+    std::io::Error::new(if e.is_timeout() {
+        std::io::ErrorKind::TimedOut
     } else {
-        io::ErrorKind::Other //TODO use an approprriate error kind where possible
+        std::io::ErrorKind::Other //TODO use an approprriate error kind where possible
     }, e)
 }
 
 /// Repeatedly prompts the user until they input a valid choice.
-pub fn choose<T>(prompt: &str, mut choices: HashMap<String, T>) -> Result<T> {
-    let mut label = input!("{prompt} [{}] ", choices.keys().join("/"))?;
+pub fn choose_sync<T>(prompt: &str, mut choices: HashMap<String, T>) -> io::Result<T> {
+    let mut label = input_sync!("{prompt} [{}] ", choices.keys().join("/"))?;
     loop {
         if let Some(choice) = choices.remove(label.trim_end_matches(&['\r', '\n'][..])) {
             return Ok(choice)
         }
-        label = input!("unrecognized answer, type {}: ", choices.keys().join(" or "))?;
+        label = input_sync!("unrecognized answer, type {}: ", choices.keys().join(" or "))?;
     }
 }
 
 /// Repeatedly prompts the user until they answer “yes” or “no”.
-pub fn yesno(prompt: &str) -> Result<bool> {
-    let mut label = input!("{prompt} [y/n] ")?;
+pub fn yesno_sync(prompt: &str) -> io::Result<bool> {
+    let mut label = input_sync!("{prompt} [y/n] ")?;
     loop {
         match &*label.trim_end_matches(&['\r', '\n'][..]).to_ascii_lowercase() {
             "y" | "yes" => return Ok(true),
             "n" | "no" => return Ok(false),
-            _ => label = input!("unrecognized answer, type “yes” or “no”: ")?,
+            _ => label = input_sync!("unrecognized answer, type “yes” or “no”: ")?,
         }
     }
 }
@@ -332,7 +210,7 @@ pub fn yesno(prompt: &str) -> Result<bool> {
 /// Report an error to `night`, my personal status monitor system, with a base priority of 29 and a priority delta of 1.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
-pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
+pub async fn night_report(path: &str, extra: Option<&str>) -> process::Result<std::process::Output> {
     let mut cmd = Command::new("sudo");
     cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg(path);
     if extra.is_some() {
@@ -349,7 +227,7 @@ pub async fn night_report(path: &str, extra: Option<&str>) -> Result<std::proces
 /// Report an error to `night`, my personal status monitor system.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
-pub async fn night_report_priority(path: &str, extra: Option<&str>, base_priority: N64, priority_delta: R64) -> Result<std::process::Output> {
+pub async fn night_report_priority(path: &str, extra: Option<&str>, base_priority: N64, priority_delta: R64) -> process::Result<std::process::Output> {
     let mut cmd = Command::new("sudo");
     cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg("--base-priority").arg(base_priority.to_string()).arg("--priority-delta").arg(priority_delta.to_string()).arg(path);
     if extra.is_some() {
@@ -366,7 +244,7 @@ pub async fn night_report_priority(path: &str, extra: Option<&str>, base_priorit
 /// Report an error to `night`, my personal status monitor system, with a base priority of 29 and a priority delta of 1.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
-pub fn night_report_sync(path: &str, extra: Option<&str>) -> Result<std::process::Output> {
+pub fn night_report_sync(path: &str, extra: Option<&str>) -> process::Result<std::process::Output> {
     let mut cmd = std::process::Command::new("sudo");
     cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg(path);
     if extra.is_some() {
@@ -383,7 +261,7 @@ pub fn night_report_sync(path: &str, extra: Option<&str>) -> Result<std::process
 /// Report an error to `night`, my personal status monitor system.
 ///
 /// Only works if called on vendredi as a user who has access to `nightd report` via sudo.
-pub fn night_report_priority_sync(path: &str, extra: Option<&str>, base_priority: N64, priority_delta: R64) -> Result<std::process::Output> {
+pub fn night_report_priority_sync(path: &str, extra: Option<&str>, base_priority: N64, priority_delta: R64) -> process::Result<std::process::Output> {
     let mut cmd = std::process::Command::new("sudo");
     cmd.arg("-u").arg("fenhl").arg("/opt/night/bin/nightd").arg("report").arg("--base-priority").arg(base_priority.to_string()).arg("--priority-delta").arg(priority_delta.to_string()).arg(path);
     if extra.is_some() {

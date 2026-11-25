@@ -173,7 +173,7 @@ impl<T: CustomExit, E: CustomExit> CustomExit for Result<T, E> {
     }
 }
 
-/// Converts a [`reqwest::Error`] into an [`io::Error`] with an appropriate [`io::ErrorKind`].
+/// Converts a [`reqwest::Error`] into a [`std::io::Error`] with an appropriate [`std::io::ErrorKind`].
 #[cfg(feature = "reqwest")]
 pub fn io_error_from_reqwest(e: reqwest::Error) -> std::io::Error {
     std::io::Error::new(if e.is_timeout() {

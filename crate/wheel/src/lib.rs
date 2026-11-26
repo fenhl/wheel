@@ -77,7 +77,7 @@ pub mod traits;
         };
 
         print!($($arg)*);
-        $crate::traits::IoResultExt::at_stdout(stdout().flush())
+        $crate::io::Annotate::at_stdout(stdout().flush())
     }};
 }
 
@@ -86,8 +86,8 @@ pub mod traits;
     ($($arg:tt)*) => {{
         async {
             let mut stdout = tokio::io::stdout();
-            $crate::traits::IoResultExt::at_stdout(tokio::io::AsyncWriteExt::write_all(&mut stdout, format!($($arg)*).as_bytes()).await)?;
-            $crate::traits::IoResultExt::at_stdout(stdout.flush().await)
+            $crate::io::Annotate::at_stdout(tokio::io::AsyncWriteExt::write_all(&mut stdout, format!($($arg)*).as_bytes()).await)?;
+            $crate::io::Annotate::at_stdout(stdout.flush().await)
         }.await
     }};
 }

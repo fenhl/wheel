@@ -77,7 +77,7 @@ pub mod traits;
             $crate::io::Annotate::at_stdout(tokio::io::AsyncWriteExt::flush(&mut stdout).await)?;
             let mut buf = String::default();
             $crate::io::Annotate::at_stdin(tokio::io::AsyncBufReadExt::read_line(&mut tokio::io::BufReader::new(tokio::io::stdin()), &mut buf).await)?;
-            Ok(buf)
+            Ok::<_, $crate::io::Error>(buf)
         }.await
     }};
 }

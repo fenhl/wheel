@@ -68,6 +68,20 @@ pub mod traits;
     }};
 }
 
+/// Prints the given prompt to stdout, then reads and returns a line from stdin.
+#[macro_export] macro_rules! input_async {
+    ($($arg:tt)*) => {{
+        let mut stdout = tokio::io::stdout();
+        async {
+            $crate::io::Annotate::at_stdout(tokio::io::AsyncWriteExt::write_all(&mut stdout, format!($($arg)*).as_bytes()).await)?;
+            $crate::io::Annotate::at_stdout(tokio::io::AsyncWriteExt::flush(&mut stdout).await)?;
+            let mut buf = String::default();
+            $crate::io::Annotate::at_stdin(tokio::io::AsyncBufReadExt::read_line(&mut tokio::io::BufReader::new(tokio::io::stdin()), &mut buf).await)?;
+            Ok(buf)
+        }.await
+    }};
+}
+
 /// Prints the given text to stdout, without appending a newline but making sure it's actually displayed
 #[macro_export] macro_rules! print_flush_sync {
     ($($arg:tt)*) => {{
@@ -202,6 +216,17 @@ pub fn choose_sync<T>(prompt: &str, mut choices: HashMap<String, T>) -> io::Resu
             return Ok(choice)
         }
         label = input_sync!("unrecognized answer, type {}: ", choices.keys().join(" or "))?;
+    }
+}
+
+/// Repeatedly prompts the user until they input a valid choice.
+pub async fn choose_async<T>(prompt: &str, mut choices: HashMap<String, T>) -> io::Result<T> {
+    let mut label = input_async!("{prompt} [{}] ", choices.keys().join("/"))?;
+    loop {
+        if let Some(choice) = choices.remove(label.trim_end_matches(&['\r', '\n'][..])) {
+            return Ok(choice)
+        }
+        label = input_async!("unrecognized answer, type {}: ", choices.keys().join(" or "))?;
     }
 }
 

@@ -84,8 +84,6 @@ pub mod traits;
 /// Prints the given text to stdout, without appending a newline but making sure it's actually displayed
 #[macro_export] macro_rules! print_flush_async {
     ($($arg:tt)*) => {{
-        use  as _;
-
         async {
             let mut stdout = tokio::io::stdout();
             $crate::traits::IoResultExt::at_stdout(tokio::io::AsyncWriteExt::write_all(&mut stdout, format!($($arg)*).as_bytes()).await)?;

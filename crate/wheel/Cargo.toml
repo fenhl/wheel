@@ -61,10 +61,10 @@ url = { version = "2", features = ["serde"], optional = true }
 wheel-derive = { path = "../wheel-derive" }
 
 [target.'cfg(tokio_unstable)'.dependencies]
-tokio = { version = "1", features = ["fs", "io-util", "macros", "parking_lot", "process", "rt-multi-thread", "sync", "tracing"], optional = true }
+tokio = { version = "1", features = ["fs", "io-std", "io-util", "macros", "parking_lot", "process", "rt-multi-thread", "sync", "tracing"], optional = true }
 
 [target.'cfg(not(tokio_unstable))'.dependencies]
-tokio = { version = "1", features = ["fs", "io-util", "macros", "parking_lot", "process", "rt-multi-thread", "sync"], optional = true }
+tokio = { version = "1", features = ["fs", "io-std", "io-util", "macros", "parking_lot", "process", "rt-multi-thread", "sync"], optional = true }
 
 [target.'cfg(all(target_os = "linux", not(doc)))'.dependencies]
 gio = { version = "0.22", optional = true }

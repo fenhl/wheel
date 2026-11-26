@@ -60,7 +60,7 @@ pub mod traits;
         };
 
         print!($($arg)*);
-        $crate::io::Annotate::at_unknown(stdout().flush().and_then(|()| {
+        $crate::io::Annotate::at_stdout(stdout().flush().and_then(|()| {
             let mut buf = String::default();
             stdin().read_line(&mut buf)?;
             Ok(buf)
@@ -77,7 +77,20 @@ pub mod traits;
         };
 
         print!($($arg)*);
-        $crate::traits::IoResultExt::at_unknown(stdout().flush())
+        $crate::traits::IoResultExt::at_stdout(stdout().flush())
+    }};
+}
+
+/// Prints the given text to stdout, without appending a newline but making sure it's actually displayed
+#[macro_export] macro_rules! print_flush_async {
+    ($($arg:tt)*) => {{
+        use  as _;
+
+        async {
+            let mut stdout = tokio::io::stdout();
+            $crate::traits::IoResultExt::at_stdout(tokio::io::AsyncWriteExt::write_all(&mut stdout, format!($($arg)*).as_bytes()).await)?;
+            $crate::traits::IoResultExt::at_stdout(stdout.flush().await)
+        }.await
     }};
 }
 

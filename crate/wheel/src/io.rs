@@ -38,9 +38,9 @@ pub enum ErrorContext {
 #[error("{context}: {inner}")]
 pub struct Error {
     #[source]
-    inner: io::Error,
+    pub inner: io::Error,
     /// The path or command where this error occurred, if known.
-    context: ErrorContext,
+    pub context: ErrorContext,
 }
 
 impl IsNetworkError for Error {

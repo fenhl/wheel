@@ -66,6 +66,22 @@ impl<T: Default> ResultExt for io::Result<T> {
     }
 }
 
+impl<T: Default> ResultExt for Result<T> {
+    fn exist_ok(self) -> Self {
+        match self {
+            Err(e) if e.inner.kind() == io::ErrorKind::AlreadyExists => Ok(T::default()),
+            _ => self,
+        }
+    }
+
+    fn missing_ok(self) -> Self {
+        match self {
+            Err(e) if e.inner.kind() == io::ErrorKind::NotFound => Ok(T::default()),
+            _ => self,
+        }
+    }
+}
+
 impl fmt::Display for ErrorContext {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
